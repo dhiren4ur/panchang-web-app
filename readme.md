@@ -17,8 +17,6 @@ A web-based Panchang calendar with real-time calculations and clean UI.
 https://mysmallapp.iceiy.com/calendar/
 
 ## 📸 Screenshots
-## 📸 Screenshots
-
 ![Home](home.jpg)
 ![Login](calendar2.jpg)
 ![today](calendar1.jpg)
