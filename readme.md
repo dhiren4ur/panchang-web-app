@@ -14,10 +14,9 @@ A web-based Panchang calendar with real-time calculations and clean UI.
 - PHP (custom Panchang calculation engine)
 
 ## 🌐 Live Demo
-(Add link here after deployment)
+https://mysmallapp.iceiy.com/calendar/
 
 ## 📸 Screenshots
-(Add images here)
 
 ## 👨‍💻 Author
 Dhiren Panchal
