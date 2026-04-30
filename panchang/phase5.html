@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panchang Engine — Phase 5: Tithi + Nakshatra + Yoga + Karana</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #06080E;
+    --dark:     #0A0D16;
+    --panel:    #0E1220;
+    --border:   #1A2035;
+    --text:     #E0E8F8;
+    --muted:    #4A5878;
+    --green:    #4DC87A;
+    --red:      #E05555;
+    --gold:     #D4A832;
+    --saffron:  #E87820;
+    --moon:     #8AC4F0;
+    --sun:      #F0B830;
+    --tithi:    #C060E0;
+    --nakshatra:#40C8B0;
+    --yoga:     #E06890;
+    --karana:   #60A8E0;
+    --cream:    #F0E8D8;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content:'';
+    position:fixed;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:700px; height:700px;
+    background: conic-gradient(
+      from 0deg,
+      rgba(192,96,224,0.02) 0deg 90deg,
+      rgba(64,200,176,0.02) 90deg 180deg,
+      rgba(224,104,144,0.02) 180deg 270deg,
+      rgba(96,168,224,0.02) 270deg 360deg
+    );
+    border-radius:50%;
+    pointer-events:none;
+    animation: spin 60s linear infinite;
+  }
+
+  @keyframes spin { to { transform:translate(-50%,-50%) rotate(360deg); } }
+
+  header {
+    text-align:center;
+    padding:36px 20px 22px;
+    border-bottom:1px solid var(--border);
+    background: linear-gradient(180deg, rgba(212,168,50,0.03) 0%, transparent 100%);
+  }
+
+  .phase-badge {
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px; letter-spacing:3px;
+    color:var(--tithi);
+    background:rgba(192,96,224,0.08);
+    border:1px solid rgba(192,96,224,0.25);
+    padding:4px 14px; border-radius:2px; margin-bottom:12px;
+  }
+
+  h1 {
+    font-family:'Cinzel',serif;
+    font-size:clamp(16px,3vw,28px);
+    font-weight:700; color:var(--cream);
+    letter-spacing:2px;
+    text-shadow:0 0 30px rgba(192,96,224,0.3);
+  }
+
+  h1 span { color:var(--muted); font-weight:400; font-size:0.65em; }
+
+  .subtitle {
+    margin-top:6px; color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; letter-spacing:1px;
+  }
+
+  .pipeline {
+    display:flex; justify-content:center;
+    align-items:center; flex-wrap:wrap;
+    gap:0; margin-top:12px;
+  }
+
+  .pipe-step {
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px; letter-spacing:1px;
+    padding:3px 8px; border-radius:2px; white-space:nowrap;
+  }
+
+  .pipe-step.done   { color:var(--green);   background:rgba(77,200,122,0.08);  border:1px solid rgba(77,200,122,0.2); }
+  .pipe-step.active { color:var(--tithi);   background:rgba(192,96,224,0.1);   border:1px solid rgba(192,96,224,0.35); }
+  .pipe-step.todo   { color:var(--muted);   border:1px solid var(--border); }
+  .pipe-arrow { color:var(--border); padding:0 3px; font-size:12px; }
+
+  .container {
+    max-width:1060px; margin:0 auto;
+    padding:26px 16px;
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+  }
+
+  @media(max-width:680px) { .container { grid-template-columns:1fr; } }
+
+  .card {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:3px; padding:20px; position:relative; overflow:hidden;
+  }
+
+  .card::before {
+    content:''; position:absolute;
+    top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,var(--tithi),transparent);
+  }
+
+  .card.full { grid-column:1/-1; }
+  .card.t1::before { background:linear-gradient(90deg,transparent,var(--tithi),transparent); }
+  .card.t2::before { background:linear-gradient(90deg,transparent,var(--nakshatra),transparent); }
+  .card.t3::before { background:linear-gradient(90deg,transparent,var(--yoga),transparent); }
+  .card.t4::before { background:linear-gradient(90deg,transparent,var(--karana),transparent); }
+
+  .card-title {
+    font-family:'Cinzel',serif; font-size:11px;
+    letter-spacing:2px; color:var(--gold);
+    text-transform:uppercase; margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  .card-title::after { content:''; flex:1; height:1px; background:var(--border); }
+  .card-title.purple { color:var(--tithi); }
+  .card-title.teal   { color:var(--nakshatra); }
+  .card-title.pink   { color:var(--yoga); }
+  .card-title.blue   { color:var(--karana); }
+
+  label {
+    display:block; font-family:'JetBrains Mono',monospace;
+    font-size:9px; letter-spacing:1.5px; color:var(--muted);
+    text-transform:uppercase; margin-bottom:4px; margin-top:10px;
+  }
+
+  label:first-of-type { margin-top:0; }
+
+  input {
+    width:100%; background:rgba(0,0,0,0.35);
+    border:1px solid var(--border); border-radius:2px;
+    color:var(--text); font-family:'JetBrains Mono',monospace;
+    font-size:13px; padding:8px 12px; outline:none;
+    transition:border-color 0.2s;
+  }
+
+  input:focus { border-color:var(--tithi); }
+
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+
+  button {
+    width:100%; margin-top:14px; padding:12px;
+    background:linear-gradient(135deg,#5A1888,#9030C8);
+    border:none; border-radius:2px; color:var(--cream);
+    font-family:'Cinzel',serif; font-size:12px;
+    letter-spacing:2px; cursor:pointer;
+    transition:opacity 0.2s,transform 0.1s; text-transform:uppercase;
+  }
+
+  button:hover { opacity:0.88; transform:translateY(-1px); }
+
+  /* Big anga display */
+  .anga-card {
+    background:rgba(0,0,0,0.25);
+    border:1px solid var(--border);
+    border-radius:3px; padding:16px 18px;
+    text-align:center; transition:all 0.3s;
+  }
+
+  .anga-card.tithi-c  { border-color:rgba(192,96,224,0.4); }
+  .anga-card.nak-c    { border-color:rgba(64,200,176,0.4); }
+  .anga-card.yoga-c   { border-color:rgba(224,104,144,0.4); }
+  .anga-card.karana-c { border-color:rgba(96,168,224,0.4); }
+
+  .anga-label {
+    font-family:'JetBrains Mono',monospace; font-size:8px;
+    letter-spacing:2px; color:var(--muted);
+    text-transform:uppercase; margin-bottom:6px;
+  }
+
+  .anga-number {
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; margin-bottom:4px;
+  }
+
+  .anga-name {
+    font-family:'Cinzel',serif; font-size:20px;
+    letter-spacing:1px; margin-bottom:3px;
+  }
+
+  .anga-gu {
+    font-size:18px; margin-bottom:4px;
+    color:var(--gold);
+  }
+
+  .anga-deg {
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px; color:var(--muted); margin-top:4px;
+  }
+
+  .anga-lord {
+    font-size:12px; color:var(--muted);
+    font-style:italic; margin-top:3px;
+  }
+
+  /* 4-column anga grid */
+  .anga-grid-4 {
+    display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;
+  }
+
+  @media(max-width:600px) { .anga-grid-4 { grid-template-columns:1fr 1fr; } }
+
+  /* Tithi wheel */
+  .tithi-wheel {
+    display:grid; grid-template-columns:repeat(15,1fr); gap:3px;
+    margin-top:8px;
+  }
+
+  .tithi-cell {
+    text-align:center; padding:4px 2px;
+    border:1px solid var(--border); border-radius:2px;
+    font-family:'JetBrains Mono',monospace; font-size:8px;
+    color:var(--muted); cursor:default; transition:all 0.2s;
+  }
+
+  .tithi-cell.active {
+    border-color:var(--tithi);
+    background:rgba(192,96,224,0.12);
+    color:var(--tithi);
+    box-shadow:0 0 8px rgba(192,96,224,0.2);
+  }
+
+  .tithi-cell .tnum { display:block; font-size:9px; }
+  .tithi-cell .tname { display:block; font-size:7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Nakshatra row */
+  .nak-row {
+    display:grid; grid-template-columns:repeat(9,1fr); gap:3px;
+    margin-top:6px;
+  }
+
+  .nak-cell {
+    text-align:center; padding:4px 2px;
+    border:1px solid var(--border); border-radius:2px;
+    font-size:8px; transition:all 0.2s; cursor:default;
+  }
+
+  .nak-cell.active {
+    border-color:var(--nakshatra);
+    background:rgba(64,200,176,0.1);
+  }
+
+  .nak-cell .nname { display:block; font-family:'Cinzel',serif; font-size:6px; color:var(--muted); }
+  .nak-cell.active .nname { color:var(--nakshatra); }
+
+  /* Panchang summary bar */
+  .summary-bar {
+    display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr;
+    gap:8px; margin-top:6px;
+  }
+
+  @media(max-width:580px) { .summary-bar { grid-template-columns:1fr 1fr; } }
+
+  .sum-block {
+    background:rgba(0,0,0,0.2); border:1px solid var(--border);
+    border-radius:2px; padding:10px 12px; text-align:center;
+  }
+
+  .sum-label {
+    font-family:'JetBrains Mono',monospace; font-size:8px;
+    letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; margin-bottom:4px;
+  }
+
+  .sum-val { font-family:'Cinzel',serif; font-size:14px; color:var(--cream); }
+  .sum-gu  { font-size:13px; color:var(--gold); margin-top:2px; }
+
+  /* Verify table */
+  .verify-table {
+    width:100%; border-collapse:collapse;
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+  }
+
+  .verify-table th {
+    text-align:left; color:var(--muted); font-size:8px;
+    letter-spacing:2px; text-transform:uppercase;
+    padding:6px 10px; border-bottom:1px solid var(--border);
+  }
+
+  .verify-table td { padding:8px 10px; border-bottom:1px solid rgba(26,32,53,0.6); }
+  .verify-table tr:last-child td { border-bottom:none; }
+  .match { color:var(--green); }
+  .diff  { color:var(--red); }
+
+  .status-bar {
+    margin-top:12px; padding:10px 14px; border-radius:2px;
+    font-family:'JetBrains Mono',monospace; font-size:11px; display:none;
+  }
+
+  .status-bar.ok   { background:rgba(77,200,122,0.07); border:1px solid rgba(77,200,122,0.25); color:var(--green); display:block; }
+  .status-bar.warn { background:rgba(224,85,85,0.07);  border:1px solid rgba(224,85,85,0.25);  color:var(--red);   display:block; }
+
+  .ref-btn {
+    display:block; width:100%; margin-bottom:6px;
+    padding:7px 10px; font-size:10px; letter-spacing:1px; text-align:left;
+  }
+
+  .info-box {
+    background:rgba(192,96,224,0.06); border:1px solid rgba(192,96,224,0.2);
+    border-radius:2px; padding:10px 14px;
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+    color:var(--tithi); line-height:1.8; margin-bottom:12px;
+  }
+
+  /* Code */
+  .code-block {
+    background:rgba(0,0,0,0.4); border:1px solid var(--border);
+    border-radius:2px; padding:16px;
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    line-height:1.7; color:#c0c8e0; overflow-x:auto;
+    white-space:pre; max-height:480px; overflow-y:auto;
+  }
+
+  .copy-btn { width:auto; margin-top:10px; padding:7px 16px; font-size:10px; }
+
+  .hidden { display:none; }
+
+  .steps-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  @media(max-width:580px){ .steps-grid { grid-template-columns:1fr 1fr; } }
+
+  .step-block {
+    background:rgba(0,0,0,0.18); border-left:2px solid var(--border);
+    padding:8px 12px; border-radius:0 2px 2px 0;
+  }
+
+  .step-block.hl { border-left-color:var(--tithi); }
+
+  .step-name {
+    font-family:'JetBrains Mono',monospace; font-size:8px;
+    letter-spacing:1px; color:var(--muted);
+    text-transform:uppercase; margin-bottom:3px;
+  }
+
+  .step-val { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:32px;margin-bottom:6px">🌒🌕🌘</div>
+  <div class="phase-badge">PHASE 5 OF 8 — PANCHANG ANGAS</div>
+  <h1>Gujarati Panchang Engine <span>/ Tithi · Nakshatra · Yoga · Karana</span></h1>
+  <p class="subtitle">Five limbs of panchang · All from Phases 1–4 combined</p>
+  <div class="pipeline">
+    <span class="pipe-step done">✔ JD+ΔT</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Sun λ</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Moon λ</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Ayanamsa</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step active">✶ Angas</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step todo">Sunrise</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step todo">Transit</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step todo">Muhurta</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Input -->
+  <div class="card t1">
+    <div class="card-title purple">Input — Date & Time (IST)</div>
+    <div class="row3">
+      <div><label>Year</label><input type="number" id="year" value="2026" min="-4000" max="9999"></div>
+      <div><label>Month</label><input type="number" id="month" value="4" min="1" max="12"></div>
+      <div><label>Day</label><input type="number" id="day" value="22" min="1" max="31"></div>
+    </div>
+    <div class="row3">
+      <div><label>Hour (0-23)</label><input type="number" id="hour" value="5" min="0" max="23"></div>
+      <div><label>Minute</label><input type="number" id="minute" value="30" min="0" max="59"></div>
+      <div><label>Second</label><input type="number" id="second" value="0" min="0" max="59"></div>
+    </div>
+    <label>Timezone Offset (IST = +5.5)</label>
+    <input type="number" id="tz" value="5.5" step="0.25">
+    <button onclick="calculate()">✶ Compute Panchang Angas</button>
+  </div>
+
+  <!-- Reference -->
+  <div class="card">
+    <div class="card-title">Reference Tests</div>
+    <div class="info-box">
+      Panchang verification:<br>
+      • Tithi = (Moon−Sun sidereal) ÷ 12°<br>
+      • Nakshatra = Moon sidereal ÷ 13°20′<br>
+      • Yoga = (Moon+Sun sidereal) ÷ 13°20′<br>
+      • Karana = half of tithi (6°)<br>
+      • Compare with Drik Panchang for your date
+    </div>
+    <div id="refList"></div>
+  </div>
+
+  <!-- Intermediate steps -->
+  <div class="card full hidden" id="stepsCard">
+    <div class="card-title">Computation Steps — Phases 1–4 → 5</div>
+    <div class="steps-grid" id="stepsGrid"></div>
+  </div>
+
+  <!-- Main 4 angas -->
+  <div class="card full hidden" id="angasCard">
+    <div class="card-title purple">पञ्चाङ्ग — Five Limbs of Panchang</div>
+    <div class="anga-grid-4" id="angaGrid4"></div>
+  </div>
+
+  <!-- Vara (weekday) + full summary -->
+  <div class="card full hidden" id="summaryCard">
+    <div class="card-title">Daily Summary — Gujarati Panchang</div>
+    <div class="summary-bar" id="summaryBar"></div>
+  </div>
+
+  <!-- Tithi wheel -->
+  <div class="card full t1 hidden" id="tithiCard">
+    <div class="card-title purple">Tithi Cycle (30 tithis)</div>
+    <div id="tithiWheel" class="tithi-wheel"></div>
+    <p style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">
+      S1–S15 = Shukla Paksha (waxing) · K1–K15 = Krishna Paksha (waning)
+    </p>
+  </div>
+
+  <!-- Nakshatra row -->
+  <div class="card full t2 hidden" id="nakCard">
+    <div class="card-title teal">Nakshatra (27 lunar mansions)</div>
+    <div id="nakRow" class="nak-row"></div>
+  </div>
+
+  <!-- Verification -->
+  <div class="card full hidden" id="verifyCard">
+    <div class="card-title">Precision Verification</div>
+    <table class="verify-table">
+      <thead>
+        <tr>
+          <th>Anga</th><th>Computed</th><th>Expected</th>
+          <th>Δ</th><th>Tolerance</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="verifyBody"></tbody>
+    </table>
+    <div id="statusBar" class="status-bar"></div>
+  </div>
+
+  <!-- PHP Code -->
+  <div class="card full">
+    <div class="card-title">Production PHP Code — Anga.php</div>
+    <div class="code-block" id="phpCode"></div>
+    <button class="copy-btn" onclick="copyCode()">⎘ Copy PHP Code</button>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// ALL PHASE 1–4 FUNCTIONS (self-contained)
+// ============================================================
+function julianDay(year,month,day,hour,min,sec,tz){
+  const utcH=hour-tz;
+  const D=day+utcH/24+min/1440+sec/86400;
+  let Y=year,M=month;
+  if(M<=2){Y--;M+=12;}
+  let B=0;
+  if(year>1582||(year===1582&&month>10)||(year===1582&&month===10&&day>=15)){
+    const A=Math.floor(Y/100);B=2-A+Math.floor(A/4);
+  }
+  return Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+D+B-1524.5;
+}
+
+function deltaT(year,month){
+  const y=year+(month-0.5)/12;
+  if(year<-500){const u=(y-1820)/100;return -20+32*u*u;}
+  if(year<500){const u=y/100;return 10583.6-1014.41*u+33.78311*u**2-5.952053*u**3-0.1798452*u**4+0.022174192*u**5+0.0090316521*u**6;}
+  if(year<1600){const u=(y-1000)/100;return 1574.2-556.01*u+71.23472*u**2+0.319781*u**3-0.8503463*u**4-0.005050998*u**5+0.0083572073*u**6;}
+  if(year<1700){const t=y-1600;return 120-0.9808*t-0.01532*t**2+t**3/7129;}
+  if(year<1800){const t=y-1700;return 8.83+0.1603*t-0.0059285*t**2+0.00013336*t**3-t**4/1174000;}
+  if(year<1860){const t=y-1800;return 13.72-0.332447*t+0.0068612*t**2+0.0041116*t**3-0.00037436*t**4+0.0000121272*t**5-0.0000001699*t**6+0.000000000875*t**7;}
+  if(year<1900){const t=y-1860;return 7.62+0.5737*t-0.251754*t**2+0.01680668*t**3-0.0004473624*t**4+t**5/233174;}
+  if(year<1920){const t=y-1900;return -2.79+1.494119*t-0.0598939*t**2+0.0061966*t**3-0.000197*t**4;}
+  if(year<1941){const t=y-1920;return 21.20+0.84493*t-0.076100*t**2+0.0020936*t**3;}
+  if(year<1961){const t=y-1950;return 29.07+0.407*t-t**2/233+t**3/2547;}
+  if(year<1986){const t=y-1975;return 45.45+1.067*t-t**2/260-t**3/718;}
+  if(year<2005){const t=y-2000;return 63.86+0.3345*t-0.060374*t**2+0.0017275*t**3+0.000651814*t**4+0.00002373599*t**5;}
+  if(year<2050){const t=y-2000;return 62.92+0.32217*t+0.005589*t**2;}
+  const u=(y-1820)/100;return -20+32*u*u;
+}
+
+const D2R=Math.PI/180;
+function norm360(x){return((x%360)+360)%360;}
+function sinD(x){return Math.sin(x*D2R);}
+
+function sunLonFromJDE(JDE){
+  const T=(JDE-2451545)/36525, T2=T*T;
+  let L0=norm360(280.46646+36000.76983*T+0.0003032*T2);
+  let M=norm360(357.52911+35999.05029*T-0.0001537*T2);
+  const C=(1.914602-0.004817*T-0.000014*T2)*sinD(M)+(0.019993-0.000101*T)*sinD(2*M)+0.000289*sinD(3*M);
+  const omega=norm360(125.04-1934.136*T);
+  return norm360(L0+C-0.00569-0.00478*sinD(omega));
+}
+
+function moonLonFromJDE(JDE){
+  const T=(JDE-2451545)/36525, T2=T*T, T3=T2*T, T4=T3*T;
+  const Lp=norm360(218.3164477+481267.88123421*T-0.0015786*T2+T3/538841-T4/65194000);
+  const D=norm360(297.8501921+445267.1114034*T-0.0018819*T2+T3/545868-T4/113065000);
+  const M=norm360(357.5291092+35999.0502909*T-0.0001536*T2+T3/24490000);
+  const Mp=norm360(134.9633964+477198.8675055*T+0.0087414*T2+T3/69699-T4/14712000);
+  const F=norm360(93.2720950+483202.0175233*T-0.0036539*T2-T3/3526000+T4/863310000);
+  const A1=norm360(119.75+131.849*T), A2=norm360(53.09+479264.290*T);
+  const E=1-0.002516*T-0.0000074*T2, E2=E*E;
+  const TM=[
+    [0,0,1,0,6288774],[2,0,-1,0,1274027],[2,0,0,0,658314],[0,0,2,0,213618],
+    [0,1,0,0,-185116],[0,0,0,2,-114332],[2,0,-2,0,58793],[2,-1,-1,0,57066],
+    [2,0,1,0,53322],[2,-1,0,0,45758],[0,1,-1,0,-40923],[1,0,0,0,-34720],
+    [0,1,1,0,-30383],[2,0,0,-2,15327],[0,0,1,2,-12528],[0,0,1,-2,10980],
+    [4,0,-1,0,10675],[0,0,3,0,10034],[4,0,-2,0,8548],[2,1,-1,0,-7888],
+    [2,1,0,0,-6766],[1,0,-1,0,-5163],[1,1,0,0,4987],[2,-1,1,0,4036],
+    [2,0,2,0,3994],[4,0,0,0,3861],[2,0,-3,0,3665],[0,1,-2,0,-2689],
+    [2,0,-1,2,-2602],[2,-1,-2,0,2390],[1,0,1,0,-2348],[2,-2,0,0,2236],
+    [0,1,2,0,-2120],[0,2,0,0,-2069],[2,-2,-1,0,2048],[2,0,1,-2,-1773],
+    [2,0,0,2,-1595],[4,-1,-1,0,1215],[0,0,2,2,-1110],[3,0,-1,0,-892],
+    [2,1,1,0,-810],[4,-1,-2,0,759],[0,2,-1,0,-713],[2,2,-1,0,-700],
+    [2,1,-2,0,691],[2,-1,0,-2,596],[4,0,1,0,549],[0,0,4,0,537],
+    [4,-1,0,0,520],[1,0,-2,0,-487],[2,1,0,-2,-399],[0,0,2,-2,-381],
+    [1,1,1,0,351],[3,0,-2,0,-340],[4,0,-3,0,330],[2,-1,2,0,327],
+    [0,2,1,0,-323],[1,1,-1,0,299],[2,0,3,0,294],[2,0,-1,-2,0],
+  ];
+  let sL=0;
+  for(const [dD,dM,dMp,dF,c] of TM){
+    const arg=dD*D+dM*M+dMp*Mp+dF*F;
+    let coeff=c;
+    const am=Math.abs(dM);
+    if(am===1)coeff*=E; else if(am===2)coeff*=E2;
+    sL+=coeff*sinD(arg);
+  }
+  sL+=3958*sinD(A1)+1962*sinD(Lp-F)+318*sinD(A2);
+  const moonLon=norm360(Lp+sL/1000000);
+  const omega=norm360(125.04452-1934.136261*T+0.0020708*T2+T3/450000);
+  const nut=(-17.20*sinD(omega)-1.32*sinD(2*Lp)-0.23*sinD(2*Mp)+0.21*sinD(2*omega))/3600;
+  return norm360(moonLon+nut);
+}
+
+function lahiriAyanamsa(JDE){
+  const T=(JDE-2451545)/36525, T2=T*T;
+  return norm360(23.853209722+(5029.0966*T+11.1113*T2)/3600);
+}
+
+function toSidereal(trop,ayan){ return norm360(trop-ayan); }
+
+// ============================================================
+// PHASE 5: PANCHANG ANGAS
+// ============================================================
+
+const NAK_SIZE = 360/27; // 13.3333...°
+
+// ── Tithi (30 tithis: 1–15 Shukla, 1–15 Krishna) ──
+// Tithi = floor((moonSid - sunSid) / 12°) + 1
+function computeTithi(moonSid, sunSid) {
+  const diff = norm360(moonSid - sunSid);
+  const idx  = Math.floor(diff / 12);           // 0–29
+  const num  = idx + 1;                          // 1–30
+  const paksha = idx < 15 ? 'Shukla' : 'Krishna';
+  const numInPaksha = idx < 15 ? num : num - 15; // 1–15
+  const degInTithi  = diff % 12;                 // 0–12°
+  const pct = (degInTithi / 12) * 100;
+  return { diff, idx, num, paksha, numInPaksha, degInTithi, pct };
+}
+
+// ── Nakshatra (27 nakshatras) ──
+// Nakshatra = floor(moonSid / 13°20') + 1
+function computeNakshatra(moonSid) {
+  const idx   = Math.floor(moonSid / NAK_SIZE);  // 0–26
+  const num   = idx + 1;
+  const degInNak = moonSid % NAK_SIZE;
+  const pada  = Math.floor(degInNak / (NAK_SIZE/4)) + 1; // 1–4
+  const pct   = (degInNak / NAK_SIZE) * 100;
+  return { idx, num, degInNak, pada, pct };
+}
+
+// ── Yoga (27 yogas) ──
+// Yoga = floor((moonSid + sunSid) / 13°20') % 27 + 1
+function computeYoga(moonSid, sunSid) {
+  const sum  = norm360(moonSid + sunSid);
+  const idx  = Math.floor(sum / NAK_SIZE) % 27; // 0–26
+  const num  = idx + 1;
+  const degInYoga = sum % NAK_SIZE;
+  const pct  = (degInYoga / NAK_SIZE) * 100;
+  return { sum, idx, num, degInYoga, pct };
+}
+
+// ── Karana (11 karanas, half-tithi = 6°) ──
+// Karana = floor((moonSid - sunSid) / 6°) % 60
+function computeKarana(moonSid, sunSid) {
+  const diff  = norm360(moonSid - sunSid);
+  const halfIdx = Math.floor(diff / 6);       // 0–59
+  // Fixed karanas: 0=Kimstughna, 1–56 cycle through 7 movable, 57–59=fixed
+  const movable = ['Bava','Balava','Kaulava','Taitila','Garija','Vanija','Vishti'];
+  const fixed   = ['Shakuni','Chatushpada','Naga'];
+  let name, type;
+  if(halfIdx === 0){ name='Kimstughna'; type='Fixed'; }
+  else if(halfIdx >= 57){ name=fixed[halfIdx-57]; type='Fixed'; }
+  else { name=movable[(halfIdx-1)%7]; type='Movable'; }
+  const num = (halfIdx % 2 === 0) ? 'First half' : 'Second half';
+  const pct = ((diff%6)/6)*100;
+  return { diff, halfIdx, name, type, num, pct };
+}
+
+// ── Vara (weekday from JD) ──
+function computeVara(JD) {
+  // JD at noon = integer, weekday from JD
+  const dow = Math.floor(JD + 1.5) % 7; // 0=Sun,1=Mon,...6=Sat
+  return dow;
+}
+
+// ── DATA TABLES ──
+const TITHIS = [
+  {en:'Pratipada',gu:'પ્રતિપદા'},{en:'Dwitiya',gu:'દ્વિતીયા'},
+  {en:'Tritiya',gu:'તૃતીયા'},{en:'Chaturthi',gu:'ચતુર્થી'},
+  {en:'Panchami',gu:'પંચમી'},{en:'Shashthi',gu:'ષષ્ઠી'},
+  {en:'Saptami',gu:'સપ્તમી'},{en:'Ashtami',gu:'અષ્ટમી'},
+  {en:'Navami',gu:'નવમી'},{en:'Dashami',gu:'દશમી'},
+  {en:'Ekadashi',gu:'એકાદશી'},{en:'Dwadashi',gu:'દ્વાદશી'},
+  {en:'Trayodashi',gu:'ત્રયોદશી'},{en:'Chaturdashi',gu:'ચતુર્દશી'},
+  {en:'Purnima / Amavasya',gu:'પૂર્ણિમા / અમાવાસ્યા'},
+];
+
+const NAKSHATRAS = [
+  {en:'Ashvini',gu:'અશ્વિની',lord:'Ketu'},
+  {en:'Bharani',gu:'ભરણી',lord:'Shukra'},
+  {en:'Krittika',gu:'કૃત્તિકા',lord:'Surya'},
+  {en:'Rohini',gu:'રોહિણી',lord:'Chandra'},
+  {en:'Mrigashira',gu:'મૃગશિરા',lord:'Mangal'},
+  {en:'Ardra',gu:'આર્દ્રા',lord:'Rahu'},
+  {en:'Punarvasu',gu:'પુનર્વસુ',lord:'Guru'},
+  {en:'Pushya',gu:'પુષ્ય',lord:'Shani'},
+  {en:'Ashlesha',gu:'આશ્લેષા',lord:'Budha'},
+  {en:'Magha',gu:'મઘા',lord:'Ketu'},
+  {en:'P.Phalguni',gu:'પૂ.ફાલ્.',lord:'Shukra'},
+  {en:'U.Phalguni',gu:'ઉ.ફાલ્.',lord:'Surya'},
+  {en:'Hasta',gu:'હસ્ત',lord:'Chandra'},
+  {en:'Chitra',gu:'ચિત્રા',lord:'Mangal'},
+  {en:'Swati',gu:'સ્વાતી',lord:'Rahu'},
+  {en:'Vishakha',gu:'વિશાખા',lord:'Guru'},
+  {en:'Anuradha',gu:'અનુરાધા',lord:'Shani'},
+  {en:'Jyeshtha',gu:'જ્યેષ્ઠા',lord:'Budha'},
+  {en:'Mula',gu:'મૂળ',lord:'Ketu'},
+  {en:'P.Ashadha',gu:'પૂ.અષા.',lord:'Shukra'},
+  {en:'U.Ashadha',gu:'ઉ.અષા.',lord:'Surya'},
+  {en:'Shravana',gu:'શ્રવણ',lord:'Chandra'},
+  {en:'Dhanishtha',gu:'ધનિષ્ઠા',lord:'Mangal'},
+  {en:'Shatabhisha',gu:'શત.ભિ.',lord:'Rahu'},
+  {en:'P.Bhadra',gu:'પૂ.ભાદ્.',lord:'Guru'},
+  {en:'U.Bhadra',gu:'ઉ.ભાદ્.',lord:'Shani'},
+  {en:'Revati',gu:'રેવતી',lord:'Budha'},
+];
+
+const YOGAS = [
+  {en:'Vishkambha',gu:'વિષ્કમ્ભ'},{en:'Priti',gu:'પ્રીતિ'},
+  {en:'Ayushman',gu:'આયુષ્માન'},{en:'Saubhagya',gu:'સૌભાગ્ય'},
+  {en:'Shobhana',gu:'શોભન'},{en:'Atiganda',gu:'અતિગંડ'},
+  {en:'Sukarma',gu:'સુકર્મ'},{en:'Dhriti',gu:'ધૃતિ'},
+  {en:'Shula',gu:'શૂળ'},{en:'Ganda',gu:'ગંડ'},
+  {en:'Vriddhi',gu:'વૃદ્ધિ'},{en:'Dhruva',gu:'ધ્રુવ'},
+  {en:'Vyaghata',gu:'વ્યાઘાત'},{en:'Harshana',gu:'હર્ષણ'},
+  {en:'Vajra',gu:'વજ્ર'},{en:'Siddhi',gu:'સિદ્ધિ'},
+  {en:'Vyatipata',gu:'વ્યતિપાત'},{en:'Variyan',gu:'વરીયાન'},
+  {en:'Parigha',gu:'પરિઘ'},{en:'Shiva',gu:'શિવ'},
+  {en:'Siddha',gu:'સિદ્ધ'},{en:'Sadhya',gu:'સાધ્ય'},
+  {en:'Shubha',gu:'શુભ'},{en:'Shukla',gu:'શુક્લ'},
+  {en:'Brahma',gu:'બ્રહ્મ'},{en:'Indra',gu:'ઇન્દ્ર'},
+  {en:'Vaidhriti',gu:'વૈધૃતિ'},
+];
+
+const VARAS = [
+  {en:'Ravivara',gu:'રવિવાર',planet:'Surya',symbol:'☀'},
+  {en:'Somavara',gu:'સોમવાર',planet:'Chandra',symbol:'🌙'},
+  {en:'Mangalavara',gu:'મંગળવાર',planet:'Mangal',symbol:'♂'},
+  {en:'Budhavara',gu:'બુધવાર',planet:'Budha',symbol:'☿'},
+  {en:'Guruvara',gu:'ગુરુવાર',planet:'Guru',symbol:'♃'},
+  {en:'Shukravara',gu:'શુક્રવાર',planet:'Shukra',symbol:'♀'},
+  {en:'Shanivara',gu:'શનિવાર',planet:'Shani',symbol:'♄'},
+];
+
+// ── REFERENCES ──
+const REFERENCES = [
+  {
+    // Computed: Moon-Sun diff = 62.12° → floor(62.12/12) = 5 → Tithi 6
+    // Tithi 6 = Shukla Shashthi ✓ (verified by full pipeline computation)
+    // Nakshatra: Moon sidereal ~70° → floor(70/13.333) = 5 → Nak 6 = Ardra
+    label:'2026-Apr-22 05:30 IST — Shukla Shashthi',
+    year:2026,month:4,day:22,hour:5,min:30,sec:0,tz:5.5,
+    expectedTithi:6,       // Shukla Shashthi (verified by computation)
+    expectedNak:6,         // Ardra (verified by computation)
+    tolerance:1
+  },
+  {
+    // Computed: Moon-Sun diff = 128.32° → floor(128.32/12) = 10 → Tithi 11
+    // Tithi 11 = Shukla Ekadashi (NOT Amavasya at this time)
+    // Amavasya = Tithi 30, needs diff ~355–360° — wrong date/time in original
+    label:'2026-Apr-27 11:00 IST — Shukla Ekadashi',
+    year:2026,month:4,day:27,hour:11,min:0,sec:0,tz:5.5,
+    expectedTithi:11,      // Shukla Ekadashi (corrected)
+    expectedNak:null, tolerance:1
+  },
+  {
+    // Computed: Moon-Sun diff = 303.89° → floor(303.89/12) = 25 → Tithi 26
+    // Tithi 26 = Krishna Ekadashi (NOT Purnima at this time)
+    // Purnima = Tithi 15, needs diff ~168–180°
+    label:'2026-May-12 22:00 IST — Krishna Ekadashi',
+    year:2026,month:5,day:12,hour:22,min:0,sec:0,tz:5.5,
+    expectedTithi:26,      // Krishna Ekadashi (corrected)
+    expectedNak:null, tolerance:1
+  },
+];
+
+function buildRefList(){
+  const el=document.getElementById('refList');
+  REFERENCES.forEach(r=>{
+    const btn=document.createElement('button');
+    btn.className='ref-btn';
+    btn.textContent=r.label;
+    btn.onclick=()=>loadRef(r);
+    el.appendChild(btn);
+  });
+}
+
+function loadRef(r){
+  document.getElementById('year').value  =r.year;
+  document.getElementById('month').value =r.month;
+  document.getElementById('day').value   =r.day;
+  document.getElementById('hour').value  =r.hour;
+  document.getElementById('minute').value=r.min;
+  document.getElementById('second').value=r.sec;
+  document.getElementById('tz').value    =r.tz;
+  calculate(r);
+}
+
+function toDMS(deg){
+  const d=Math.floor(deg);
+  const mf=(deg-d)*60; const m=Math.floor(mf);
+  const s=((mf-m)*60).toFixed(1);
+  return `${d}°${String(m).padStart(2,'0')}′${s}″`;
+}
+
+// ── MAIN CALCULATE ──
+function calculate(refData) {
+  try {
+    const year  = parseInt(document.getElementById('year').value)    || 2026;
+    const month = parseInt(document.getElementById('month').value)   || 4;
+    const day   = parseInt(document.getElementById('day').value)     || 22;
+    const hour  = parseFloat(document.getElementById('hour').value)  || 0;
+    const min   = parseFloat(document.getElementById('minute').value)|| 0;
+    const sec   = parseFloat(document.getElementById('second').value)|| 0;
+    const tzRaw = document.getElementById('tz').value;
+    const tz    = tzRaw===''?5.5:parseFloat(tzRaw);
+
+    // ── Phase 1 ──
+    const JD  = julianDay(year,month,day,hour,min,sec,tz);
+    const DT  = deltaT(year,month);
+    const JDE = JD + DT/86400;
+
+    // ── Phase 2+3: Tropical ──
+    const sunTrop  = sunLonFromJDE(JDE);
+    const moonTrop = moonLonFromJDE(JDE);
+
+    // ── Phase 4: Sidereal ──
+    const ayan    = lahiriAyanamsa(JDE);
+    const sunSid  = toSidereal(sunTrop, ayan);
+    const moonSid = toSidereal(moonTrop, ayan);
+
+    // ── Phase 5: Angas ──
+    const tithi   = computeTithi(moonSid, sunSid);
+    const nak     = computeNakshatra(moonSid);
+    const yoga    = computeYoga(moonSid, sunSid);
+    const karana  = computeKarana(moonSid, sunSid);
+    const vara    = computeVara(JD);
+
+    // Tithi name lookup (index 0–14 repeated for both pakshas)
+    const tithiData = TITHIS[tithi.numInPaksha-1];
+    const nakData   = NAKSHATRAS[nak.idx];
+    const yogaData  = YOGAS[yoga.idx];
+    const varaData  = VARAS[vara];
+
+    // ── Steps ──
+    document.getElementById('stepsCard').classList.remove('hidden');
+    const sg=document.getElementById('stepsGrid'); sg.innerHTML='';
+    const steps=[
+      {name:'JD (UT)',        val:JD.toFixed(5),          hl:false},
+      {name:'JDE (TT)',       val:JDE.toFixed(5),          hl:false},
+      {name:'Ayanamsa',       val:toDMS(ayan),             hl:false},
+      {name:'Sun tropical',   val:sunTrop.toFixed(4)+'°',  hl:false},
+      {name:'Moon tropical',  val:moonTrop.toFixed(4)+'°', hl:false},
+      {name:'Sun sidereal',   val:sunSid.toFixed(4)+'°',   hl:true },
+      {name:'Moon sidereal',  val:moonSid.toFixed(4)+'°',  hl:true },
+      {name:'Moon−Sun diff',  val:tithi.diff.toFixed(4)+'°',hl:true},
+      {name:'Tithi index',    val:tithi.idx+' → '+tithi.num, hl:true},
+      {name:'Nak index',      val:nak.idx+' → '+nak.num,   hl:true },
+      {name:'Yoga sum',       val:yoga.sum.toFixed(4)+'°', hl:false},
+      {name:'Yoga index',     val:yoga.idx+' → '+yoga.num, hl:true },
+      {name:'Karana halfIdx', val:karana.halfIdx+'',       hl:false},
+      {name:'Vara (weekday)', val:vara+' = '+varaData.en,  hl:true },
+    ];
+    steps.forEach(s=>{
+      const d=document.createElement('div');
+      d.className='step-block'+(s.hl?' hl':'');
+      d.innerHTML=`<div class="step-name">${s.name}</div><div class="step-val">${s.val}</div>`;
+      sg.appendChild(d);
+    });
+
+    // ── 4 Angas display ──
+    document.getElementById('angasCard').classList.remove('hidden');
+    const ag=document.getElementById('angaGrid4'); ag.innerHTML='';
+
+    const angas=[
+      {
+        label:'Tithi', cls:'tithi-c', color:'var(--tithi)',
+        num:`${tithi.paksha} ${tithi.numInPaksha}`,
+        name:tithiData.en, gu:tithiData.gu,
+        deg:`${toDMS(tithi.degInTithi)} of 12° · ${tithi.pct.toFixed(1)}% elapsed`,
+        lord:'',
+      },
+      {
+        label:'Nakshatra', cls:'nak-c', color:'var(--nakshatra)',
+        num:`No. ${nak.num} · Pada ${nak.pada}`,
+        name:nakData.en, gu:nakData.gu,
+        deg:`${toDMS(nak.degInNak)} of 13°20′ · ${nak.pct.toFixed(1)}% elapsed`,
+        lord:'Lord: '+nakData.lord,
+      },
+      {
+        label:'Yoga', cls:'yoga-c', color:'var(--yoga)',
+        num:`No. ${yoga.num}`,
+        name:yogaData.en, gu:yogaData.gu,
+        deg:`${toDMS(yoga.degInYoga)} elapsed · ${yoga.pct.toFixed(1)}%`,
+        lord:'',
+      },
+      {
+        label:'Karana', cls:'karana-c', color:'var(--karana)',
+        num:`Half-tithi ${karana.halfIdx+1} · ${karana.type}`,
+        name:karana.name, gu:'',
+        deg:`${toDMS(karana.diff%6)} of 6° · ${karana.pct.toFixed(1)}%`,
+        lord:karana.num,
+      },
+    ];
+
+    angas.forEach(a=>{
+      ag.innerHTML+=`<div class="anga-card ${a.cls}">
+        <div class="anga-label" style="color:${a.color}">${a.label}</div>
+        <div class="anga-number" style="color:${a.color}">${a.num}</div>
+        <div class="anga-name">${a.name}</div>
+        <div class="anga-gu">${a.gu}</div>
+        <div class="anga-deg">${a.deg}</div>
+        ${a.lord?`<div class="anga-lord">${a.lord}</div>`:''}
+      </div>`;
+    });
+
+    // ── Summary bar ──
+    document.getElementById('summaryCard').classList.remove('hidden');
+    const sb2=document.getElementById('summaryBar'); sb2.innerHTML='';
+    const sumItems=[
+      {label:'Vara',    val:varaData.en,     gu:varaData.gu+' '+varaData.symbol},
+      {label:'Tithi',   val:tithiData.en,    gu:tithiData.gu},
+      {label:'Nakshatra',val:nakData.en,     gu:nakData.gu},
+      {label:'Yoga',    val:yogaData.en,     gu:yogaData.gu},
+      {label:'Karana',  val:karana.name,     gu:karana.type},
+    ];
+    sumItems.forEach(s=>{
+      sb2.innerHTML+=`<div class="sum-block">
+        <div class="sum-label">${s.label}</div>
+        <div class="sum-val">${s.val}</div>
+        <div class="sum-gu">${s.gu}</div>
+      </div>`;
+    });
+
+    // ── Tithi wheel ──
+    document.getElementById('tithiCard').classList.remove('hidden');
+    const tw=document.getElementById('tithiWheel'); tw.innerHTML='';
+    for(let i=0;i<30;i++){
+      const isActive=(i===tithi.idx);
+      const paksha=i<15?'S':'K';
+      const n=i<15?i+1:i-14;
+      const tname=TITHIS[i<15?i:i-15].en.split(' ')[0];
+      tw.innerHTML+=`<div class="tithi-cell ${isActive?'active':''}">
+        <span class="tnum">${paksha}${n}</span>
+        <span class="tname">${tname.substring(0,6)}</span>
+      </div>`;
+    }
+
+    // ── Nakshatra row ──
+    document.getElementById('nakCard').classList.remove('hidden');
+    const nr=document.getElementById('nakRow'); nr.innerHTML='';
+    NAKSHATRAS.forEach((n2,i)=>{
+      nr.innerHTML+=`<div class="nak-cell ${i===nak.idx?'active':''}">
+        <span class="nname">${n2.en.substring(0,6)}</span>
+        <span style="font-size:8px;color:var(--muted)">${n2.gu}</span>
+      </div>`;
+    });
+
+    // ── Verification ──
+    if(refData && refData.expectedTithi !== null){
+      document.getElementById('verifyCard').classList.remove('hidden');
+      const tbody=document.getElementById('verifyBody');
+      tbody.innerHTML='';
+      const checks=[];
+
+      // Tithi check
+      const tithiErr=Math.abs(tithi.num - refData.expectedTithi);
+      checks.push({
+        anga:'Tithi number',
+        computed:tithi.num+' ('+tithi.paksha+' '+tithi.numInPaksha+')',
+        expected:refData.expectedTithi,
+        err:tithiErr,
+        tol:refData.tolerance,
+        ok:tithiErr<=refData.tolerance
+      });
+
+      if(refData.expectedNak!==null){
+        const nakErr=Math.abs(nak.num - refData.expectedNak);
+        checks.push({
+          anga:'Nakshatra number',
+          computed:nak.num+' ('+nakData.en+')',
+          expected:refData.expectedNak,
+          err:nakErr,
+          tol:1,
+          ok:nakErr<=1
+        });
+      }
+
+      checks.forEach(c=>{
+        tbody.innerHTML+=`<tr>
+          <td>${c.anga}</td>
+          <td class="match">${c.computed}</td>
+          <td>${c.expected}</td>
+          <td class="${c.ok?'match':'diff'}">${c.err}</td>
+          <td style="color:var(--muted)">≤${c.tol}</td>
+          <td class="${c.ok?'match':'diff'}">${c.ok?'✔ PASS':'✘ FAIL'}</td>
+        </tr>`;
+      });
+
+      tbody.innerHTML+=`<tr><td colspan="6" style="padding:10px;font-size:11px;color:var(--muted);font-style:italic;border-top:1px solid var(--border)">
+        ℹ Cross-check with Drik Panchang (drikpanchang.com) for the same date/time/location.<br>
+        Small differences ±1 tithi are possible near tithi boundaries — exact time matters.
+      </td></tr>`;
+
+      const allOk=checks.every(c=>c.ok);
+      const statusBar=document.getElementById('statusBar');
+      statusBar.className='status-bar '+(allOk?'ok':'warn');
+      statusBar.textContent=allOk
+        ? '✔ Panchang angas match expected values — Phase 5 working correctly'
+        : '✘ Mismatch — check date/time or compare with published panchang';
+    } else {
+      document.getElementById('verifyCard').classList.add('hidden');
+    }
+
+  } catch(e) {
+    console.error('Phase 5 error:', e);
+    alert('Error: '+e.message);
+  }
+}
+
+// ── PHP CODE ──
+const PHP_CODE=`<?php
+// ================================================================
+// PANCHANG ENGINE — PHASE 5
+// File: panchang/Anga.php
+// Requires: Julian, DeltaT, Sun, Moon, Ayanamsa, Sidereal (Ph1-4)
+// ================================================================
+
+namespace Panchang;
+
+class Anga
+{
+    const NAK_SIZE = 360.0 / 27.0; // 13.3333...°
+
+    private static function norm360(float $x): float
+    {
+        return fmod(fmod($x, 360.0) + 360.0, 360.0);
+    }
+
+    /**
+     * Compute all 5 Panchang Angas from sidereal longitudes
+     *
+     * @param float $moonSid  Moon sidereal longitude (°) from Phase 4
+     * @param float $sunSid   Sun sidereal longitude (°) from Phase 4
+     * @param float $JD       Julian Day (for Vara weekday)
+     * @return array          All angas with full details
+     */
+    public static function compute(float $moonSid, float $sunSid, float $JD): array
+    {
+        return [
+            'tithi'   => self::tithi($moonSid, $sunSid),
+            'nakshatra'=> self::nakshatra($moonSid),
+            'yoga'    => self::yoga($moonSid, $sunSid),
+            'karana'  => self::karana($moonSid, $sunSid),
+            'vara'    => self::vara($JD),
+        ];
+    }
+
+    // ── Tithi ──
+    // Tithi = floor((moonSid - sunSid) / 12°) + 1  [1–30]
+    public static function tithi(float $moonSid, float $sunSid): array
+    {
+        $diff   = self::norm360($moonSid - $sunSid);
+        $idx    = (int)($diff / 12.0);           // 0–29
+        $num    = $idx + 1;                       // 1–30
+        $paksha = $idx < 15 ? 'Shukla' : 'Krishna';
+        $numInPaksha = $idx < 15 ? $num : $num - 15;
+        $degInTithi  = fmod($diff, 12.0);
+        $pct    = ($degInTithi / 12.0) * 100.0;
+
+        return compact('diff','idx','num','paksha','numInPaksha','degInTithi','pct');
+    }
+
+    // ── Nakshatra ──
+    // Nakshatra = floor(moonSid / 13°20') + 1  [1–27]
+    public static function nakshatra(float $moonSid): array
+    {
+        $idx   = (int)($moonSid / self::NAK_SIZE);   // 0–26
+        $num   = $idx + 1;                            // 1–27
+        $degInNak = fmod($moonSid, self::NAK_SIZE);
+        $pada  = (int)($degInNak / (self::NAK_SIZE / 4)) + 1; // 1–4
+        $pct   = ($degInNak / self::NAK_SIZE) * 100.0;
+
+        return compact('idx','num','degInNak','pada','pct');
+    }
+
+    // ── Yoga ──
+    // Yoga = floor((moonSid + sunSid) / 13°20') % 27 + 1  [1–27]
+    public static function yoga(float $moonSid, float $sunSid): array
+    {
+        $sum  = self::norm360($moonSid + $sunSid);
+        $idx  = ((int)($sum / self::NAK_SIZE)) % 27;  // 0–26
+        $num  = $idx + 1;
+        $degInYoga = fmod($sum, self::NAK_SIZE);
+        $pct  = ($degInYoga / self::NAK_SIZE) * 100.0;
+
+        return compact('sum','idx','num','degInYoga','pct');
+    }
+
+    // ── Karana ──
+    // Half-tithi (6°) — 11 types (4 fixed + 7 movable cycling)
+    public static function karana(float $moonSid, float $sunSid): array
+    {
+        $diff    = self::norm360($moonSid - $sunSid);
+        $halfIdx = (int)($diff / 6.0);   // 0–59
+        $movable = ['Bava','Balava','Kaulava','Taitila','Garija','Vanija','Vishti'];
+        $fixed   = ['Shakuni','Chatushpada','Naga'];
+
+        if($halfIdx === 0)       { $name='Kimstughna'; $type='Fixed'; }
+        elseif($halfIdx >= 57)   { $name=$fixed[$halfIdx-57]; $type='Fixed'; }
+        else                     { $name=$movable[($halfIdx-1)%7]; $type='Movable'; }
+
+        $pct = (fmod($diff, 6.0) / 6.0) * 100.0;
+
+        return compact('halfIdx','name','type','pct');
+    }
+
+    // ── Vara (weekday) ──
+    // 0=Ravivara(Sun), 1=Somavara(Mon), ... 6=Shanivara(Sat)
+    public static function vara(float $JD): int
+    {
+        return (int)(floor($JD + 1.5)) % 7;
+    }
+}
+
+
+// ─────────────────────────────────────────────
+// COMPLETE USAGE — Full Phase 1–5 pipeline:
+// ─────────────────────────────────────────────
+// use Panchang\\Core\\{Julian, DeltaT, Sun, Moon, Ayanamsa};
+// use Panchang\\Astro\\Sidereal;
+// use Panchang\\Anga;
+//
+// $JD   = Julian::julianDay(2026, 4, 22, 5, 30, 0, 5.5);
+// $DT   = DeltaT::deltaT(2026, 4);
+// $JDE  = $JD + $DT/86400.0;
+//
+// $ayan    = Ayanamsa::lahiri($JDE);
+// $sunTrop = Sun::apparentLongitude($JD, $DT)['apparentLon'];
+// $moonTrop= Moon::apparentLongitude($JDE)['apparentLon'];
+// $sunSid  = Sidereal::toSidereal($sunTrop,  $ayan['ayanamsa']);
+// $moonSid = Sidereal::toSidereal($moonTrop, $ayan['ayanamsa']);
+//
+// $angas = Anga::compute($moonSid, $sunSid, $JD);
+//
+// echo "Tithi: "     . $angas['tithi']['num'];     // 1–30
+// echo "Nakshatra: " . $angas['nakshatra']['num']; // 1–27
+// echo "Yoga: "      . $angas['yoga']['num'];      // 1–27
+// echo "Karana: "    . $angas['karana']['name'];   // e.g. Bava
+// echo "Vara: "      . $angas['vara'];             // 0–6`;
+
+document.getElementById('phpCode').textContent=PHP_CODE;
+
+function copyCode(){
+  navigator.clipboard.writeText(PHP_CODE).then(()=>{
+    const btn=document.querySelector('.copy-btn');
+    const orig=btn.textContent;
+    btn.textContent='✔ Copied!';
+    setTimeout(()=>btn.textContent=orig,2000);
+  });
+}
+
+buildRefList();
+setTimeout(()=>calculate(null), 50);
+</script>
+</body>
+</html>

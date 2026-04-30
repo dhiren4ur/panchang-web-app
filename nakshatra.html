@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>નક્ષત્ર</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans Gujarati',sans-serif;background:linear-gradient(135deg,#e8eaf6 0%,#c5cae9 100%);min-height:100vh;padding:0 0 30px}
+
+.top-bar{background:linear-gradient(135deg,#1565c0,#0d47a1);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 10px rgba(0,0,0,0.2)}
+.back-btn{background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.6);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+.top-bar h1{color:#fff;font-size:20px;font-weight:700;text-shadow:1px 1px 3px rgba(0,0,0,0.3)}
+
+.today-card{margin:14px 12px 8px;background:#fff;border-radius:14px;padding:14px 16px;border:2px solid #1565c0;box-shadow:0 4px 15px rgba(21,101,192,0.2)}
+.today-badge{font-size:11px;font-weight:700;color:#1565c0;background:#e3f2fd;padding:3px 10px;border-radius:10px;display:inline-block;margin-bottom:8px}
+.today-naksh-name{font-size:22px;font-weight:700;color:#0d47a1;margin-bottom:4px}
+.today-naksh-en{font-size:14px;color:#1565c0;margin-bottom:8px}
+.today-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:11px;padding:3px 9px;border-radius:10px;font-weight:600}
+.pill-deity{background:#e8f5e9;color:#1b5e20}
+.pill-planet{background:#fff3e0;color:#e65100}
+.pill-symbol{background:#f3e5f5;color:#4a148c}
+
+.section-title{font-size:13px;font-weight:700;color:#0d47a1;padding:10px 14px 6px;opacity:.7;letter-spacing:.5px;text-transform:uppercase}
+
+.naksh-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 10px}
+.naksh-card{background:#fff;border-radius:12px;padding:10px 8px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+.naksh-card:active{transform:scale(0.96)}
+.naksh-card.is-today{border-color:#1565c0;background:#e3f2fd}
+.naksh-num{font-size:10px;font-weight:700;color:#9fa8da;margin-bottom:2px}
+.naksh-gu{font-size:14px;font-weight:700;color:#0d47a1;margin-bottom:1px}
+.naksh-en{font-size:10px;color:#5c6bc0}
+.naksh-symbol{font-size:11px;color:#7986cb;margin-top:2px}
+
+/* Detail overlay */
+.detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;justify-content:center;align-items:flex-end;padding:0}
+.detail-overlay.show{display:flex}
+.detail-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;padding:0 0 24px}
+.sheet-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:12px auto 0}
+.sheet-header{padding:16px 18px 10px;border-bottom:1px solid #e8eaf6;display:flex;align-items:flex-start;justify-content:space-between}
+.sheet-name-gu{font-size:24px;font-weight:700;color:#0d47a1}
+.sheet-name-en{font-size:14px;color:#5c6bc0;margin-top:2px}
+.sheet-close{font-size:22px;color:#9e9e9e;cursor:pointer;line-height:1;padding:0 4px}
+.sheet-body{padding:14px 18px}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #f0f0f0;font-size:14px}
+.info-label{color:#9e9e9e;font-weight:600}
+.info-val{color:#1a1a1a;font-weight:600;text-align:right;flex:1;margin-left:8px}
+.desc-box{background:#e8eaf6;border-radius:10px;padding:12px;margin-top:12px;font-size:14px;color:#283593;line-height:1.7}
+.lucky-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.lucky-pill{font-size:12px;padding:4px 10px;border-radius:10px;font-weight:600;background:#e3f2fd;color:#0d47a1}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="back-btn" onclick="history.back()">← પાછળ</button>
+  <h1>⭐ નક્ષત્ર</h1>
+</div>
+
+<div class="today-card" id="today-card">
+  <div class="today-badge">આજ નું નક્ષત્ર</div>
+  <div class="today-naksh-name" id="today-name-gu">લોડ...</div>
+  <div class="today-naksh-en" id="today-name-en"></div>
+  <div class="today-pills" id="today-pills"></div>
+</div>
+
+<div class="section-title">બધાં ૨૭ નક્ષત્ર</div>
+<div class="naksh-grid" id="naksh-grid"></div>
+
+<!-- Detail sheet -->
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-name-gu" id="det-name-gu"></div>
+        <div class="sheet-name-en" id="det-name-en"></div>
+      </div>
+      <span class="sheet-close" id="sheet-close">&times;</span>
+    </div>
+    <div class="sheet-body" id="det-body"></div>
+  </div>
+</div>
+
+<script>
+const NAKSHATRAS = [
+  {num:1, en:'Ashwini',          gu:'અશ્વિની',       deity:'Ashwini Kumaras',   planet:'Ketu',    symbol:'Horse head',    quality:'Light, Swift',  guna:'Rajas', pada:4, desc:'Ashwini represents swift movement and healing. People born in this nakshatra are energetic, adventurous, and independent. They are natural healers and pioneers.',  lucky:{color:'Red',gem:'Cat\'s Eye',num:1,dir:'East'}},
+  {num:2, en:'Bharani',          gu:'ભરણી',          deity:'Yama',              planet:'Venus',   symbol:'Yoni',          quality:'Fierce',        guna:'Rajas', pada:4, desc:'Bharani is the nakshatra of restraint and transformation. It carries the energy of creation and destruction, representing birth, death, and rebirth cycles.',             lucky:{color:'Red',gem:'Diamond',num:6,dir:'South'}},
+  {num:3, en:'Krittika',         gu:'કૃત્તિકા',       deity:'Agni',              planet:'Sun',     symbol:'Flame/Razor',   quality:'Mixed',         guna:'Rajas', pada:4, desc:'Krittika is associated with fire and sharp intelligence. People born here are ambitious, courageous, and disciplined. They have the ability to cut through illusion.',    lucky:{color:'White',gem:'Ruby',num:1,dir:'East'}},
+  {num:4, en:'Rohini',           gu:'રોહિણી',         deity:'Brahma',            planet:'Moon',    symbol:'Ox cart/Chariot',quality:'Fixed',         guna:'Rajas', pada:4, desc:'Rohini is the most beautiful and fertile nakshatra. It is associated with growth, creativity, and material abundance. People are charming, artistic, and sensual.',        lucky:{color:'White',gem:'Pearl',num:2,dir:'East'}},
+  {num:5, en:'Mrigashira',       gu:'મૃગશીર્ષ',       deity:'Soma (Moon god)',   planet:'Mars',    symbol:'Deer\'s head',  quality:'Soft, Gentle',  guna:'Tamas', pada:4, desc:'Mrigashira represents the eternal search for beauty and truth. These people are curious, gentle, and always seeking. They are good researchers and communicators.',        lucky:{color:'Silver',gem:'Coral',num:9,dir:'South'}},
+  {num:6, en:'Ardra',            gu:'આર્દ્રા',         deity:'Rudra (Shiva)',     planet:'Rahu',    symbol:'Teardrop/Diamond',quality:'Sharp',        guna:'Tamas', pada:4, desc:'Ardra is the nakshatra of storms and transformation. It brings radical change, destruction of the old, and new beginnings. People are intense and highly intelligent.',      lucky:{color:'Green',gem:'Hessonite',num:4,dir:'South'}},
+  {num:7, en:'Punarvasu',        gu:'પુનર્વસુ',        deity:'Aditi',             planet:'Jupiter', symbol:'Bow and quiver', quality:'Movable',       guna:'Rajas', pada:4, desc:'Punarvasu means "return of the light." It represents renewal, restoration, and optimism. These people are philosophical, generous, and have a peaceful nature.',            lucky:{color:'Yellow',gem:'Yellow Sapphire',num:3,dir:'North'}},
+  {num:8, en:'Pushya',           gu:'પુષ્ય',           deity:'Brihaspati',        planet:'Saturn',  symbol:'Flower/Circle',  quality:'Light',         guna:'Tamas', pada:4, desc:'Pushya is considered the most auspicious nakshatra for starting new ventures. It represents nourishment, care, and spiritual growth. These people are devoted and caring.',  lucky:{color:'Red',gem:'Blue Sapphire',num:8,dir:'East'}},
+  {num:9, en:'Ashlesha',         gu:'આશ્લેષા',        deity:'Nagas (serpents)',  planet:'Mercury', symbol:'Serpent',        quality:'Sharp/Hard',    guna:'Sattva',pada:4, desc:'Ashlesha is associated with serpent energy, transformation, and mystical wisdom. People born here are perceptive, intuitive, and often possess healing abilities.',            lucky:{color:'Black',gem:'Emerald',num:5,dir:'North'}},
+  {num:10,en:'Magha',            gu:'મઘા',            deity:'Pitris (ancestors)',planet:'Ketu',    symbol:'Royal throne',   quality:'Fierce',        guna:'Tamas', pada:4, desc:'Magha is the nakshatra of royal ancestry and leadership. It carries the energy of authority, tradition, and pride. These people have strong leadership qualities.',            lucky:{color:'Cream',gem:'Cat\'s Eye',num:1,dir:'East'}},
+  {num:11,en:'Purva Phalguni',   gu:'પૂર્વ ફાલ્ગુની',  deity:'Bhaga',             planet:'Venus',   symbol:'Front legs of bed',quality:'Fierce',      guna:'Tamas', pada:4, desc:'Purva Phalguni represents rest, pleasure, and creative expression. People are charming, romantic, and enjoy the finer things in life. They are talented in arts.',        lucky:{color:'Pink',gem:'Diamond',num:6,dir:'West'}},
+  {num:12,en:'Uttara Phalguni',  gu:'ઉત્તર ફાલ્ગુની', deity:'Aryaman',           planet:'Sun',     symbol:'Back legs of bed', quality:'Fixed',       guna:'Tamas', pada:4, desc:'Uttara Phalguni is about service, friendship, and social contracts. These people are helpful, popular, and have good marriages. They balance duty with pleasure well.',    lucky:{color:'Blue',gem:'Ruby',num:1,dir:'East'}},
+  {num:13,en:'Hasta',            gu:'હસ્ત',           deity:'Savitar (Sun god)', planet:'Moon',    symbol:'Hand',           quality:'Light',         guna:'Tamas', pada:4, desc:'Hasta means "the hand" and represents skill, craftsmanship, and healing. People are dexterous, clever, and practical. They excel in arts and crafts.',                       lucky:{color:'Green',gem:'Pearl',num:2,dir:'South'}},
+  {num:14,en:'Chitra',           gu:'ચિત્રા',          deity:'Vishwakarma',       planet:'Mars',    symbol:'Bright jewel/Pearl',quality:'Soft',       guna:'Tamas', pada:4, desc:'Chitra is the nakshatra of beauty, art, and architecture. People are stylish, creative, and attracted to glamour. They have excellent aesthetic sense and design ability.',    lucky:{color:'Black',gem:'Coral',num:9,dir:'West'}},
+  {num:15,en:'Swati',            gu:'સ્વાતિ',          deity:'Vayu (Wind god)',   planet:'Rahu',    symbol:'Sword/Coral',    quality:'Movable',       guna:'Tamas', pada:4, desc:'Swati represents independence, flexibility, and the power of wind. These people are social, diplomatic, and business minded. They adapt easily to new environments.',         lucky:{color:'Black',gem:'Hessonite',num:4,dir:'North'}},
+  {num:16,en:'Vishakha',         gu:'વિશાખા',         deity:'Indra-Agni',        planet:'Jupiter', symbol:'Triumphal arch',  quality:'Mixed',         guna:'Rajas', pada:4, desc:'Vishakha means "the forked branch" and represents determination and goal-oriented nature. These people are ambitious, competitive, and ultimately triumphant in their goals.',  lucky:{color:'Golden',gem:'Yellow Sapphire',num:3,dir:'East'}},
+  {num:17,en:'Anuradha',         gu:'અનુરાધા',        deity:'Mitra',             planet:'Saturn',  symbol:'Lotus flower',   quality:'Soft',          guna:'Tamas', pada:4, desc:'Anuradha is the nakshatra of friendship, devotion, and spiritual exploration. People are loyal friends, spiritually inclined, and love to travel and discover.',               lucky:{color:'Reddish Brown',gem:'Blue Sapphire',num:8,dir:'West'}},
+  {num:18,en:'Jyeshtha',         gu:'જ્યેષ્ઠા',        deity:'Indra',             planet:'Mercury', symbol:'Circular talisman',quality:'Sharp',       guna:'Sattva',pada:4, desc:'Jyeshtha means "the eldest" and carries authority, responsibility, and occult power. These people are protective, resourceful, and possess hidden power and wisdom.',           lucky:{color:'Cream',gem:'Emerald',num:5,dir:'South'}},
+  {num:19,en:'Mula',             gu:'મૂળ',            deity:'Nirriti (goddess)', planet:'Ketu',    symbol:'Tied roots',     quality:'Sharp/Hard',    guna:'Tamas', pada:4, desc:'Mula means "the root" and represents digging deep, investigation, and transformation. These people question everything and often become researchers or spiritual seekers.',        lucky:{color:'Brown',gem:'Cat\'s Eye',num:7,dir:'South'}},
+  {num:20,en:'Purva Ashadha',    gu:'પૂર્વ અષાઢા',    deity:'Apas (water deity)',planet:'Venus',   symbol:'Elephant tusk',  quality:'Fierce',        guna:'Rajas', pada:4, desc:'Purva Ashadha represents invincibility and purification. People are proud, independent, and have strong convictions. They are fighters who never give up easily.',            lucky:{color:'Black',gem:'Diamond',num:6,dir:'South'}},
+  {num:21,en:'Uttara Ashadha',   gu:'ઉત્તર અષાઢા',   deity:'Vishvadevas',       planet:'Sun',     symbol:'Elephant tusk',  quality:'Fixed',         guna:'Rajas', pada:4, desc:'Uttara Ashadha gives lasting victories and refinement of character. These people are ethical, responsible, and achieve recognition through sustained hard work.',             lucky:{color:'Copper',gem:'Ruby',num:1,dir:'South'}},
+  {num:22,en:'Shravana',         gu:'શ્રવણ',          deity:'Vishnu',            planet:'Moon',    symbol:'Three footprints',quality:'Movable',       guna:'Rajas', pada:4, desc:'Shravana means "hearing" and represents learning, listening, and connection. People are wise, knowledgeable, and often become teachers or counselors. They have good memory.',  lucky:{color:'Blue',gem:'Pearl',num:2,dir:'North'}},
+  {num:23,en:'Dhanishta',        gu:'ધનિષ્ઠા',        deity:'Eight Vasus',       planet:'Mars',    symbol:'Drum/Flute',     quality:'Movable',       guna:'Tamas', pada:4, desc:'Dhanishta is the nakshatra of wealth, music, and rhythm. People are talented musicians, wealthy, and socially connected. They love fame and have magnetic personalities.',       lucky:{color:'Silver',gem:'Coral',num:9,dir:'East'}},
+  {num:24,en:'Shatabhisha',      gu:'શતભિષા',         deity:'Varuna',            planet:'Rahu',    symbol:'Empty circle',   quality:'Movable',       guna:'Tamas', pada:4, desc:'Shatabhisha means "100 healers" and represents medicine, mysticism, and solitude. People are healers, researchers, and loners who possess deep esoteric knowledge.',            lucky:{color:'Blue',gem:'Hessonite',num:4,dir:'West'}},
+  {num:25,en:'Purva Bhadrapada', gu:'પૂર્વ ભાદ્રપદ',  deity:'Ajaikapada',        planet:'Jupiter', symbol:'Sword/Front legs of funeral cot',quality:'Fierce',guna:'Rajas',pada:4,desc:'Purva Bhadrapada represents transformation through fire and purification. People are passionate, visionary, and often unconventional in their lifestyle and beliefs.',    lucky:{color:'Silver',gem:'Yellow Sapphire',num:3,dir:'West'}},
+  {num:26,en:'Uttara Bhadrapada',gu:'ઉત્તર ભાદ્રપદ', deity:'Ahirbudhnya',       planet:'Saturn',  symbol:'Twins/Back legs', quality:'Fixed',         guna:'Tamas', pada:4, desc:'Uttara Bhadrapada is associated with depth, wisdom, and self-sacrifice. These people are spiritually evolved, compassionate, and often dedicated to serving others.',       lucky:{color:'Purple',gem:'Blue Sapphire',num:8,dir:'East'}},
+  {num:27,en:'Revati',           gu:'રેવતી',           deity:'Pushan',            planet:'Mercury', symbol:'Fish/Drum',       quality:'Soft/Gentle',   guna:'Sattva',pada:4, desc:'Revati is the final nakshatra, representing completion, compassion, and spiritual liberation. People are gentle, nurturing, and often possess psychic abilities.',              lucky:{color:'Brown',gem:'Emerald',num:5,dir:'North'}}
+];
+
+// Calculate today's nakshatra from moon longitude (simplified)
+// We use day of year to approximate — for real data we rely on panchang API
+let todayNakshatraIndex = -1;
+
+async function loadTodayNakshatra() {
+  try {
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const res  = await fetch(`api.php?action=panchang&date=${dateStr}`);
+    const data = await res.json();
+    if (data.success && data.data && data.data.panchang) {
+      const nName = data.data.panchang.nakshatra?.name || '';
+      const idx   = NAKSHATRAS.findIndex(n => n.en.toLowerCase() === nName.toLowerCase());
+      if (idx >= 0) todayNakshatraIndex = idx;
+      renderTodayCard(idx >= 0 ? NAKSHATRAS[idx] : null, nName);
+    } else {
+      console.error('Nakshatra API error:', data);
+      renderTodayCard(null, 'API Error');
+    }
+  } catch(e) {
+    console.error('Nakshatra load error:', e);
+    renderTodayCard(null, 'Network Error');
+  }
+  renderGrid();
+}
+
+function renderTodayCard(n, fallbackName) {
+  const nameGu = document.getElementById('today-name-gu');
+  const nameEn = document.getElementById('today-name-en');
+  const pills  = document.getElementById('today-pills');
+  if (!n) {
+    nameGu.textContent = fallbackName || 'ઉપલબ્ધ નથી';
+    nameEn.textContent = '';
+    pills.innerHTML = '';
+    return;
+  }
+  nameGu.textContent = n.gu;
+  nameEn.textContent = n.en + ' · ' + n.symbol;
+  pills.innerHTML = `
+    <span class="pill pill-deity">🙏 ${n.deity}</span>
+    <span class="pill pill-planet">🪐 ${n.planet}</span>
+    <span class="pill pill-symbol">✦ ${n.quality}</span>`;
+}
+
+function renderGrid() {
+  const grid = document.getElementById('naksh-grid');
+  grid.innerHTML = NAKSHATRAS.map((n, i) => `
+    <div class="naksh-card ${i === todayNakshatraIndex ? 'is-today' : ''}" onclick="openDetail(${i})">
+      <div class="naksh-num">${n.num}</div>
+      <div class="naksh-gu">${n.gu}</div>
+      <div class="naksh-en">${n.en}</div>
+      <div class="naksh-symbol">${n.symbol}</div>
+    </div>`).join('');
+}
+
+function openDetail(i) {
+  const n = NAKSHATRAS[i];
+  document.getElementById('det-name-gu').textContent = n.gu;
+  document.getElementById('det-name-en').textContent = `${n.en} · #${n.num}`;
+  document.getElementById('det-body').innerHTML = `
+    <div class="info-row"><span class="info-label">દેવ</span><span class="info-val">${n.deity}</span></div>
+    <div class="info-row"><span class="info-label">ગ્રહ</span><span class="info-val">${n.planet}</span></div>
+    <div class="info-row"><span class="info-label">ચિહ્ન</span><span class="info-val">${n.symbol}</span></div>
+    <div class="info-row"><span class="info-label">ગુણ</span><span class="info-val">${n.quality}</span></div>
+    <div class="info-row"><span class="info-label">ગુણ (Guna)</span><span class="info-val">${n.guna}</span></div>
+    <div class="desc-box">${n.desc}</div>
+    <div style="margin-top:12px;font-size:12px;font-weight:700;color:#9fa8da;text-transform:uppercase;letter-spacing:.5px">Lucky</div>
+    <div class="lucky-row">
+      <span class="lucky-pill">🎨 ${n.lucky.color}</span>
+      <span class="lucky-pill">💎 ${n.lucky.gem}</span>
+      <span class="lucky-pill">🔢 ${n.lucky.num}</span>
+      <span class="lucky-pill">🧭 ${n.lucky.dir}</span>
+    </div>`;
+  document.getElementById('detail-overlay').classList.add('show');
+}
+
+document.getElementById('sheet-close').onclick = () =>
+  document.getElementById('detail-overlay').classList.remove('show');
+document.getElementById('detail-overlay').onclick = e => {
+  if (e.target === document.getElementById('detail-overlay'))
+    document.getElementById('detail-overlay').classList.remove('show');
+};
+
+loadTodayNakshatra();
+</script>
+</body>
+</html>

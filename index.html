@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ગુજરાતી કેલેન્ડર - Expense Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e65c00">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ══════════════════════════════════════════
+           CSS VARIABLES — GUJARATI (DEFAULT) ORANGE
+        ══════════════════════════════════════════ */
+        :root {
+            --primary:          #ff6600;
+            --primary-dark:     #cc5200;
+            --primary-light:    #ff9933;
+            --header-bg:        linear-gradient(135deg, #b33000 0%, #e65c00 35%, #ff8c00 70%, #ffb347 100%);
+            --stripe1:          #ff6600;
+            --stripe2:          #008000;
+            --body-bg:          linear-gradient(135deg, #f5e6d3 0%, #d4a574 100%);
+            --container-bg:     linear-gradient(to bottom, #fef9f0, #f5e6d3);
+            --cell-bg:          linear-gradient(to bottom, #fffef9 0%, #fff8f0 100%);
+            --cell-hover-bg:    linear-gradient(to bottom, #fff8e1 0%, #ffecb3 100%);
+            --cell-border:      #e6d5b8;
+            --grid-bg:          #d4a574;
+            --weekday-bg:       #e65c00;
+            --today-bg:         linear-gradient(to bottom, #ffe0b2 0%, #ffcc80 100%);
+            --today-border:     #ff6600;
+            --today-glow:       rgba(255,102,0,0.4);
+            --today-num:        #ff6600;
+            --date-num:         #2c1810;
+            --tithi-color:      #5d4037;
+            --festival-color:   #d32f2f;
+            --modal-border:     #ff6600;
+            --modal-header:     #ff6600;
+            --detail-border:    #e0d0b8;
+            --input-focus:      #ff6600;
+            --input-shadow:     rgba(255,102,0,0.2);
+            --ctx-border:       #ff6600;
+            --ctx-hover:        #ff6600;
+            --bar-bg:           rgba(0,0,0,0.08);
+            --bar-border:       #cc5200;
+            /* ── Cell color coding ── */
+            --cell-festival-bg:   #fce4ec;
+            --cell-festival-border: #f06292;
+            --cell-purnima-bg:    #e8eaf6;
+            --cell-purnima-border: #9fa8da;
+            --cell-amavasya-bg:   #f3e5f5;
+            --cell-amavasya-border: #ce93d8;
+        }
+
+        /* ══════════════════════════════════════════
+           ENGLISH — TEAL BLUE THEME
+        ══════════════════════════════════════════ */
+        body.lang-en {
+            --primary:          #00796b;
+            --primary-dark:     #004d40;
+            --primary-light:    #26a69a;
+            --header-bg:        linear-gradient(135deg, #00695c 0%, #00897b 40%, #26a69a 80%, #4db6ac 100%);
+            --stripe1:          #00796b;
+            --stripe2:          #0288d1;
+            --body-bg:          linear-gradient(135deg, #e0f2f1 0%, #80cbc4 100%);
+            --container-bg:     linear-gradient(to bottom, #f0fffe, #e0f2f1);
+            --cell-bg:          linear-gradient(to bottom, #f0fffe 0%, #e8f8f5 100%);
+            --cell-hover-bg:    linear-gradient(to bottom, #e0f7fa 0%, #b2ebf2 100%);
+            --cell-border:      #b2dfdb;
+            --grid-bg:          #80cbc4;
+            --weekday-bg:       #26a69a;
+            --today-bg:         linear-gradient(to bottom, #b2dfdb 0%, #80cbc4 100%);
+            --today-border:     #00796b;
+            --today-glow:       rgba(0,121,107,0.45);
+            --today-num:        #00695c;
+            --date-num:         #004d40;
+            --tithi-color:      #00695c;
+            --festival-color:   #0277bd;
+            --modal-border:     #00796b;
+            --modal-header:     #00796b;
+            --detail-border:    #b2dfdb;
+            --input-focus:      #00796b;
+            --input-shadow:     rgba(0,121,107,0.2);
+            --ctx-border:       #00796b;
+            --ctx-hover:        #00796b;
+            --bar-bg:           rgba(0,77,64,0.1);
+            --bar-border:       #004d40;
+        }
+
+        /* ══════════════════════════════════════════
+           HINDI — DEEP PURPLE / SAFFRON THEME
+        ══════════════════════════════════════════ */
+        body.lang-hi {
+            --primary:          #6a1b9a;
+            --primary-dark:     #4a148c;
+            --primary-light:    #ab47bc;
+            --header-bg:        linear-gradient(135deg, #4a148c 0%, #6a1b9a 40%, #8e24aa 75%, #ab47bc 100%);
+            --stripe1:          #ff6f00;
+            --stripe2:          #6a1b9a;
+            --body-bg:          linear-gradient(135deg, #f3e5f5 0%, #ce93d8 100%);
+            --container-bg:     linear-gradient(to bottom, #fdf6ff, #f3e5f5);
+            --cell-bg:          linear-gradient(to bottom, #fdf6ff 0%, #f8eeff 100%);
+            --cell-hover-bg:    linear-gradient(to bottom, #f3e5f5 0%, #e1bee7 100%);
+            --cell-border:      #d1b3dd;
+            --grid-bg:          #ce93d8;
+            --weekday-bg:       #ab47bc;
+            --today-bg:         linear-gradient(to bottom, #e1bee7 0%, #ce93d8 100%);
+            --today-border:     #6a1b9a;
+            --today-glow:       rgba(106,27,154,0.4);
+            --today-num:        #4a148c;
+            --date-num:         #1a0030;
+            --tithi-color:      #4a148c;
+            --festival-color:   #e65100;
+            --modal-border:     #6a1b9a;
+            --modal-header:     #6a1b9a;
+            --detail-border:    #d1b3dd;
+            --input-focus:      #6a1b9a;
+            --input-shadow:     rgba(106,27,154,0.2);
+            --ctx-border:       #6a1b9a;
+            --ctx-hover:        #6a1b9a;
+            --bar-bg:           rgba(74,20,140,0.08);
+            --bar-border:       #4a148c;
+        }
+
+        /* ══════════════════════════════════════════
+           BASE
+        ══════════════════════════════════════════ */
+        body {
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            background: var(--body-bg);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.4s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: background 0.4s ease;
+        }
+
+
+        .calendar-header::before,
+        .calendar-header::after {
+            content: '';
+            position: absolute;
+            height: 6px;
+            left: 0; right: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--stripe1) 0px,  var(--stripe1) 10px,
+                #ffffff        10px, #ffffff        20px,
+                var(--stripe2) 20px, var(--stripe2) 30px
+            );
+            transition: background 0.4s ease;
+            z-index: 2;
+        }
+        .calendar-header::before { display: none; }
+        .calendar-header::after  { display: none; }
+
+        /* ── Top row: Auth + Language Toggle ── */
+        .header-top-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 0 8px;
+        }
+
+        /* Auth buttons */
+        .auth-btn {
+            padding: 6px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            transition: all 0.2s;
+        }
+
+        #loginBtn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.75);
+            color: #ffffff;
+        }
+        #loginBtn:hover {
+            background: rgba(255,255,255,0.38);
+            transform: translateY(-1px);
+        }
+
+        #logoutBtn {
+            background: rgba(192,57,43,0.75);
+            border: 2px solid rgba(231,76,60,0.9);
+            color: #ffffff;
+        }
+        #logoutBtn:hover {
+            background: rgba(192,57,43,0.95);
+            transform: translateY(-1px);
+        }
+
+        /* GU ↔ EN Toggle — push‑button effect, green */
+        .lang-toggle {
+            background: linear-gradient(to bottom, #2ecc71, #1e8449);
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            padding: 6px 14px;
+            min-width: 52px;
+            cursor: pointer;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            /* 3-D raised look */
+            box-shadow: 0 4px 0 #145a32, 0 5px 10px rgba(0,0,0,0.3);
+            transform: translateY(0);
+            transition: box-shadow 0.1s, transform 0.1s, background 0.2s;
+        }
+        .lang-toggle:hover {
+            background: linear-gradient(to bottom, #3de08a, #27ae60);
+        }
+        .lang-toggle:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #145a32, 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* ── Month Title + Samvat subtitle ── OLD
+        .month-title {
+            font-size: 30px;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+            margin: 4px 0 4px;
+            position: relative;
+            z-index: 2;
+        }*/
+        .samvat-subtitle {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.88);
+            text-align: center;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ── App title row with swastiks ── */
+        .header-app-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            z-index: 2;
+            margin: 4px 0 2px;
+            
+        }
+        .header-app-title {
+            font-size: 30px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Month nav row: arrow left, month center, arrow right ── */
+        .month-nav-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4px;
+            position: relative;
+            z-index: 2;
+            margin: 2px 0;
+        }
+        .arrow-btn {
+            background: rgba(255,255,255,0.18);
+            border: 1.5px solid rgba(255,255,255,0.55);
+            border-radius: 50%;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+            line-height: 1;
+        }
+        .arrow-btn:hover { background: rgba(255,255,255,0.32); }
+        .arrow-btn:active { transform: scale(0.93); }
+        .month-center {
+            flex: 1;
+            text-align: center;
+        }
+        .month-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+            cursor: pointer;
+        }
+        .lunar-months-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.85);
+            font-weight: 600;
+            margin-top: 1px;
+        }
+
+        /* ── Vadhu menu ── */
+        .vadhu-menu {
+            display: none;
+            position: fixed;
+            bottom: 75px;
+            right: 10px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            z-index: 500;
+            min-width: 180px;
+            overflow: hidden;
+        }
+        .vadhu-menu.open { display: block; }
+        .vadhu-menu a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 13px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            text-decoration: none;
+            border-bottom: 0.5px solid #f0f0f0;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        .vadhu-menu a:last-child { border-bottom: none; }
+        .vadhu-menu a:hover { background: #f5f5f5; }
+        .vadhu-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 499;
+        }
+        .vadhu-overlay.open { display: block; }
+
+        /* ── PWA Banner ── */
+        .pwa-banner {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 999;
+            background: linear-gradient(135deg, #b33000, #e65c00);
+            padding: 12px 16px;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 -3px 16px rgba(0,0,0,0.3);
+        }
+        .pwa-banner.show { display: flex; }
+        .pwa-banner-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .pwa-banner-icon img { width: 34px; height: 34px; object-fit: contain; }
+        .pwa-banner-text { flex: 1; }
+        .pwa-banner-title { font-size: 13px; font-weight: 700; color: #fff; font-family: 'Noto Sans Gujarati', sans-serif; }
+        .pwa-banner-sub { font-size: 11px; color: rgba(255,255,255,0.8); font-family: 'Noto Sans Gujarati', sans-serif; }
+        .pwa-install-btn {
+            background: #fff; color: #e65c00;
+            border: none; border-radius: 8px;
+            padding: 7px 12px; font-size: 12px; font-weight: 700;
+            cursor: pointer; flex-shrink: 0;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        .pwa-close-btn {
+            background: none; border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 20px; cursor: pointer;
+            padding: 0 4px; flex-shrink: 0;
+        }
+
+        /* ── Swastik beside month title ── OLD
+        .header-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            z-index: 2;
+            margin: 2px 0;
+        }*/
+        .swastik-svg {
+            width: 32px;
+            height: 32px;
+            opacity: 0.92;
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.3));
+            flex-shrink: 0;
+            object-fit: contain;
+            display: block;
+            align-self: center;
+        }
+        .swastik-mirror { transform: scaleX(-1); }
+        
+
+        /* ── Rangoli watermark in header ── */
+        .calendar-header {
+            background: var(--header-bg);
+            padding: 0 20px 18px;
+            border-bottom: 5px solid var(--primary-dark);
+            position: relative;
+            transition: background 0.4s ease, border-color 0.4s ease;
+            overflow: hidden;
+        }
+        .rangoli-watermark {
+            position: absolute;
+            right: -30px;
+            bottom: -20px;
+            width: 200px;
+            height: 200px;
+            opacity: 0.30;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .rangoli-watermark-left {
+            position: absolute;
+            left: -30px;
+            top: 10px;
+            width: 250px;
+            height: 250px;
+            opacity: 0.20;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ── Navigation: Prev / Today / Next ── */
+        /*
+        .header-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+        */
+
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1.5px solid rgba(255,255,255,0.6);
+            border-radius: 6px;
+            color: #ffffff;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.32);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+        .nav-btn:active { transform: translateY(0); }
+
+        /* ══════════════════════════════════════════
+           SUMMARY CONTROLS BAR  (below header)
+        ══════════════════════════════════════════ */
+        .summary-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: var(--bar-bg);
+            border-bottom: 2px solid var(--bar-border);
+            flex-wrap: wrap;
+            transition: background 0.4s ease, border-color 0.4s ease;
+        }
+
+        .summary-controls .ctrl-btn {
+            background: var(--primary);
+            border: 2px solid var(--primary-dark);
+            border-radius: 20px;
+            color: #ffffff;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            box-shadow: 0 3px 0 var(--primary-dark);
+            transition: all 0.15s;
+        }
+        .summary-controls .ctrl-btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 0 var(--primary-dark);
+        }
+        .summary-controls .ctrl-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--primary-dark);
+        }
+
+        /* ── Guest notice bar (shown when not logged in) ── */
+        .guest-notice {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--bar-bg);
+            border-bottom: 2px solid var(--bar-border);
+            font-size: 13px;
+            color: var(--primary-dark);
+            flex-wrap: wrap;
+        }
+        .guest-notice span {
+            font-weight: 500;
+            opacity: 0.85;
+        }
+        .guest-login-link {
+            background: var(--primary);
+            color: #fff;
+            text-decoration: none;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 2px solid var(--primary-dark);
+            box-shadow: 0 2px 0 var(--primary-dark);
+            transition: all 0.15s;
+        }
+        .guest-login-link:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 0 var(--primary-dark);
+        }
+
+        /* ══════════════════════════════════════════
+           QUICK ACCESS BAR
+        ══════════════════════════════════════════ */
+        .quick-access-bar {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            padding: 10px 6px 8px;
+            background: var(--container-bg);
+            border-bottom: 1.5px solid var(--bar-border);
+            gap: 2px;
+        }
+        .qa-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            flex: 1;
+            max-width: 64px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .qa-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+            transition: transform .12s, box-shadow .12s;
+        }
+        .qa-btn:active .qa-icon {
+            transform: translateY(3px);
+            box-shadow: 0 0px 0 rgba(0,0,0,0.2);
+        }
+        .qa-icon svg { width: 24px; height: 24px; }
+        .qa-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            line-height: 1.3;
+        }
+        .ic-chogh  { background: linear-gradient(145deg, #ff8f00, #e65100); }
+        .ic-panch  { background: linear-gradient(145deg, #8e24aa, #4a148c); }
+        .ic-naksh  { background: linear-gradient(145deg, #1976d2, #0d47a1); }
+        .ic-suvich { background: linear-gradient(145deg, #388e3c, #1b5e20); }
+        .ic-muhur  { background: linear-gradient(145deg, #c62828, #880e4f); }
+        .ic-more   { background: linear-gradient(145deg, #00838f, #004d40); }
+        .lbl-chogh  { color: #e65100; }
+        .lbl-panch  { color: #4a148c; }
+        .lbl-naksh  { color: #0d47a1; }
+        .lbl-suvich { color: #1b5e20; }
+        .lbl-more   { color: #004d40; }
+
+        /* Choghadia popup rows */
+        .chogh-popup-panel { padding: 4px 0 8px; }
+        .chogh-section-hdr { font-size:11px;font-weight:700;color:var(--tithi-color);opacity:.6;text-transform:uppercase;letter-spacing:.5px;padding:6px 0 3px; }
+        .chogh-row { display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:3px;font-family:'Noto Sans Gujarati',sans-serif; }
+        .chogh-row-current { border:2px solid var(--today-border);background:var(--today-bg); }
+        .chogh-dot  { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+        .chogh-name { font-weight:700;font-size:14px;min-width:72px; }
+        .chogh-time { font-size:12px;opacity:.75;flex:1; }
+        .chogh-now  { font-size:10px;font-weight:700;background:var(--primary);color:#fff;padding:2px 8px;border-radius:8px; }
+
+        /* Suvichar popup */
+        .suvichar-quote   { font-size:16px;font-weight:600;color:#2c1810;line-height:1.7;margin-bottom:12px;font-family:'Noto Sans Gujarati',sans-serif; }
+        .suvichar-author  { font-size:13px;color:#8d6e63;font-style:italic; }
+        .suvichar-refresh { margin-top:16px;width:100%;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans Gujarati',sans-serif; }
+
+        /* ══════════════════════════════════════════
+           CHOGHADIA PANEL  (Option B — inside modal)
+        ══════════════════════════════════════════ */
+        .choghadia-toggle-row {
+            user-select: none;
+        }
+        .choghadia-toggle-row:hover .detail-label,
+        .choghadia-toggle-row:hover .detail-value {
+            opacity: 0.75;
+        }
+        .choghadia-panel {
+            padding: 4px 0 8px;
+        }
+        .chogh-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--tithi-color);
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 0 3px;
+        }
+        .chogh-slot {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 6px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 2px;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        .chogh-slot-current {
+            border: 1.5px solid var(--today-border);
+        }
+        .chogh-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .chogh-name {
+            font-weight: 700;
+            min-width: 68px;
+        }
+        .chogh-time {
+            color: var(--tithi-color);
+            font-size: 12px;
+            opacity: 0.8;
+            flex: 1;
+        }
+        .chogh-now-badge {
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--primary);
+            color: #fff;
+            padding: 1px 7px;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
+        /* ══════════════════════════════════════════
+           WEEKDAY HEADER
+        ══════════════════════════════════════════ */
+        .weekday-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: var(--weekday-bg);
+            padding: 10px 0;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            font-size: 15px;
+            border-bottom: 3px solid var(--primary-dark);
+            transition: background 0.4s ease, border-color 0.4s ease;
+        }
+
+        /* ══════════════════════════════════════════
+           DATE GRID
+        ══════════════════════════════════════════ */
+        .date-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--grid-bg);
+            padding: 1px;
+            transition: background 0.4s ease;
+        }
+
+        .date-cell {
+            background: var(--cell-bg);
+            min-height: 120px;
+            padding: 8px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s, box-shadow 0.2s, border-color 0.4s;
+            position: relative;
+            border: 1px solid var(--cell-border);
+        }
+        .date-cell:hover {
+            background: var(--cell-hover-bg);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+        .date-cell-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            position: relative;
+        }
+
+        .date-number {
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--date-num);
+            margin-bottom: 4px;
+            transition: color 0.4s ease;
+        }
+        .guj-tithi {
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            transition: color 0.4s ease;
+            /* pill style */
+            background: rgba(255,102,0,0.12);
+            color: #b33000;
+            border-radius: 10px;
+            padding: 1px 7px;
+            display: inline-block;
+        }
+        body.lang-en .guj-tithi {
+            background: rgba(0,121,107,0.10);
+            color: #004d40;
+        }
+        body.lang-hi .guj-tithi {
+            background: rgba(106,27,154,0.10);
+            color: #4a148c;
+        }
+        .festival-name {
+            font-size: 11px;
+            color: var(--festival-color);
+            text-align: center;
+            font-weight: 600;
+            line-height: 1.2;
+            transition: color 0.4s ease;
+        }
+        .festival-indicator {
+            position: absolute;
+            top: 4px; right: 4px;
+            width: 8px; height: 8px;
+            background: var(--festival-color);
+            border-radius: 50%;
+            box-shadow: 0 0 5px var(--festival-color);
+            transition: background 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .today {
+            background: var(--today-bg) !important;
+            border: 3px solid var(--today-border) !important;
+            box-shadow: 0 0 20px var(--today-glow);
+        }
+        .today .date-number { color: var(--today-num); }
+
+        /* ── Color-coded special days ── */
+        .cell-festival {
+            background: var(--cell-festival-bg) !important;
+            border-color: var(--cell-festival-border) !important;
+        }
+        .cell-purnima {
+            background: #e8eaf6 !important;
+            border-color: #9fa8da !important;
+        }
+        .cell-amavasya {
+            background: #f3e5f5 !important;
+            border-color: #ce93d8 !important;
+        }
+        .cell-festival .date-number { color: #880e4f; }
+        .cell-purnima  .date-number { color: #283593; }
+        .cell-amavasya .date-number { color: #4a148c; }
+
+        /* ══════════════════════════════════════════
+           CONTEXT MENU
+        ══════════════════════════════════════════ */
+        .context-menu {
+            display: none;
+            position: fixed;
+            background: #ffffff;
+            border: 2px solid var(--ctx-border);
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            overflow: hidden;
+            transition: border-color 0.4s ease;
+        }
+        .context-menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.2s;
+        }
+        .context-menu-item:hover {
+            background: var(--ctx-hover);
+            color: #ffffff;
+        }
+
+        /* ══════════════════════════════════════════
+           MODALS
+        ══════════════════════════════════════════ */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: var(--container-bg);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border: 3px solid var(--modal-border);
+            position: relative;
+            transition: background 0.4s ease, border-color 0.4s ease;
+        }
+        .modal-header {
+            background: var(--modal-header);
+            color: #ffffff;
+            padding: 15px;
+            margin: -30px -30px 20px -30px;
+            border-radius: 12px 12px 0 0;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            transition: background 0.4s ease;
+        }
+        .modal-close {
+            position: absolute;
+            top: 10px; right: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .detail-row {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--detail-border);
+            display: flex;
+            justify-content: space-between;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: var(--tithi-color);
+        }
+        .detail-value { color: var(--date-num); }
+
+        .form-row {
+            padding: 6px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .form-row label {
+            font-weight: 600;
+            color: var(--tithi-color);
+            font-size: 14px;
+        }
+        .form-row input,
+        .form-row select {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--detail-border);
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            font-size: 14px;
+            background: #fffef9;
+        }
+        .form-row input:focus,
+        .form-row select:focus {
+            outline: none;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 6px var(--input-shadow);
+        }
+
+        /* Save Expense button inside modal — override transparent nav-btn */
+        .modal-content .nav-btn {
+            background: var(--primary) !important;
+            border: 2px solid var(--primary-dark) !important;
+            color: #ffffff !important;
+            box-shadow: 0 3px 0 var(--primary-dark);
+            transition: background 0.3s, transform 0.15s, box-shadow 0.15s;
+        }
+        .modal-content .nav-btn:hover {
+            background: var(--primary-light) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 0 var(--primary-dark);
+        }
+        .modal-content .nav-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--primary-dark);
+        }
+
+        /* RASHI FORECAST BAR */
+        .rashi-forecast-bar {
+            position: fixed; top: 0; left: 0; right: 0; 
+            background: var(--container-bg); 
+            border-bottom: 3px solid var(--primary); 
+            z-index: 1000; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            transform: translateY(-100%); transition: transform 0.3s ease;
+        }
+        .rashi-forecast-bar.show { transform: translateY(0); }
+        .rfb-inner { position: relative; max-width: 1200px; margin: 0 auto; padding: 12px 16px; }
+        .rfb-close { position: absolute; top: 8px; right: 12px; background: none; border: none; 
+            color: var(--primary); font-size: 20px; cursor: pointer; z-index: 10; }
+        .rfb-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 12px 0; 
+            scrollbar-width: thin; scrollbar-color: var(--primary) transparent; }
+        .rfb-scroll::-webkit-scrollbar { height: 4px; }
+        .rfb-scroll::-webkit-scrollbar-track { background: transparent; }
+        .rfb-scroll::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 2px; }
+        .rfb-card { min-width: 90px; display: flex; flex-direction: column; align-items: center; 
+            gap: 4px; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--cell-border); 
+            background: var(--cell-bg); cursor: pointer; transition: all 0.2s; text-align: center; }
+        .rfb-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .rfb-sym {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        }
+
+        .rfb-sym-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        }
+        .rfb-name { font-size: 11px; font-weight: 700; color: var(--date-num); font-family: 'Noto Sans Gujarati', sans-serif; }
+        .rfb-stars { display: flex; gap: 1px; font-size: 14px; }
+        .rfb-star { color: #ff8f00; }
+        .rfb-star-off { color: #d8cfc5; }
+        .rfb-cb { font-size: 9px; color: var(--primary); font-weight: 600; padding: 2px 6px; 
+            border-radius: 8px; background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.3); }
+        .rfb-footer { display: flex; justify-content: space-between; align-items: center; 
+            padding: 8px 0 4px 0; border-top: 1px solid var(--bar-border); margin-top: 12px; }
+        .rfb-label { font-size: 13px; color: var(--tithi-color); font-weight: 500; }
+        .rfb-link { background: var(--primary); color: white; padding: 8px 16px; border-radius: 20px; 
+            font-size: 13px; font-weight: 700; text-decoration: none; border: 2px solid var(--primary-dark); 
+            box-shadow: 0 3px 0 var(--primary-dark); transition: all 0.15s; }
+        .rfb-link:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 5px 0 var(--primary-dark); }
+
+        /* ══════════════════════════════════════════
+           RESPONSIVE
+        ══════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .date-cell   { min-height: 82px; padding: 5px; }
+            .date-number { font-size: 22px; }
+            .guj-tithi   { font-size: 10px; }
+            .festival-name { font-size: 9px; }
+            .month-title { font-size: 21px; }
+            .nav-btn     { padding: 7px 13px; font-size: 13px; }
+            .header-controls { gap: 8px; }
+        }
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            .month-title { font-size: 17px; }
+            .header-top-row { gap: 6px; }
+            .auth-btn   { font-size: 12px; padding: 5px 10px; }
+            .lang-toggle { font-size: 12px; padding: 5px 10px; min-width: 44px; }
+            .summary-controls .ctrl-btn { font-size: 12px; padding: 6px 10px; }
+        }
+        /* ── Wallpaper Preview Strip ── */
+        .wp-strip{background:#140800;padding:10px 12px 12px;border-bottom:2px solid #cc5200}
+        .wp-strip-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .wp-strip-title{font-size:12px;font-weight:700;color:#ffb347;font-family:'Noto Sans Gujarati',sans-serif}
+        .wp-strip-more{font-size:11px;font-weight:700;color:#ff9933;text-decoration:none;background:rgba(255,153,51,0.15);padding:3px 10px;border-radius:10px;border:1px solid rgba(255,153,51,0.35)}
+        .wp-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+        .wp-thumb{aspect-ratio:9/16;border-radius:8px;overflow:hidden;cursor:pointer;background:#2a1200;border:1.5px solid rgba(255,153,51,0.2);display:block;-webkit-tap-highlight-color:transparent;transition:transform .15s}
+        .wp-thumb:active{transform:scale(0.95)}
+        .wp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+        .wp-thumb-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 55%);pointer-events:none}
+        .wp-thumb{position:relative}
+        .wp-thumb-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.35}
+    </style>
+    
+
+</head>
+<body>
+    <div class="container" id="mainContainer">
+
+        <!-- ═══════ CALENDAR HEADER ═══════ -->
+        <div class="calendar-header" id="calendarHeader">
+
+            <!-- Rangoli watermark — right -->
+            <img src="rangoli.png" class="rangoli-watermark" alt="">
+                <circle cx="100" cy="100" r="95" fill="none" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="100" cy="100" r="75" fill="none" stroke="#fff" stroke-width="1"/>
+                <circle cx="100" cy="100" r="55" fill="none" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="100" cy="100" r="35" fill="none" stroke="#fff" stroke-width="1"/>
+                <circle cx="100" cy="100" r="15" fill="#fff" fill-opacity="0.6"/>
+                <!-- 8 petals outer -->
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(0 100 100)"/>
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(45 100 100)"/>
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(90 100 100)"/>
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(135 100 100)"/>
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(180 100 100)"/>
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(225 100 100)"/>
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(270 100 100)"/>
+                <ellipse cx="100" cy="22" rx="7" ry="18" fill="#fff" fill-opacity="0.7" transform="rotate(315 100 100)"/>
+                <!-- 8 inner petals -->
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(0 100 100)"/>
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(45 100 100)"/>
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(90 100 100)"/>
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(135 100 100)"/>
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(180 100 100)"/>
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(225 100 100)"/>
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(270 100 100)"/>
+                <ellipse cx="100" cy="50" rx="5" ry="12" fill="#fff" fill-opacity="0.5" transform="rotate(315 100 100)"/>
+                <!-- diamond dots on outer ring -->
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(0 100 100)"/>
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(45 100 100)"/>
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(90 100 100)"/>
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(135 100 100)"/>
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(180 100 100)"/>
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(225 100 100)"/>
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(270 100 100)"/>
+                <circle cx="100" cy="5"  r="3" fill="#fff" fill-opacity="0.8" transform="rotate(315 100 100)"/>
+            </svg>
+
+            <!-- Rangoli watermark — left (smaller) -->
+            <img src="rangoli2.png" class="rangoli-watermark-left" alt="">
+                <circle cx="100" cy="100" r="90" fill="none" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="100" cy="100" r="65" fill="none" stroke="#fff" stroke-width="1"/>
+                <circle cx="100" cy="100" r="40" fill="none" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="100" cy="100" r="12" fill="#fff" fill-opacity="0.5"/>
+                <ellipse cx="100" cy="18" rx="6" ry="16" fill="#fff" fill-opacity="0.6" transform="rotate(0 100 100)"/>
+                <ellipse cx="100" cy="18" rx="6" ry="16" fill="#fff" fill-opacity="0.6" transform="rotate(60 100 100)"/>
+                <ellipse cx="100" cy="18" rx="6" ry="16" fill="#fff" fill-opacity="0.6" transform="rotate(120 100 100)"/>
+                <ellipse cx="100" cy="18" rx="6" ry="16" fill="#fff" fill-opacity="0.6" transform="rotate(180 100 100)"/>
+                <ellipse cx="100" cy="18" rx="6" ry="16" fill="#fff" fill-opacity="0.6" transform="rotate(240 100 100)"/>
+                <ellipse cx="100" cy="18" rx="6" ry="16" fill="#fff" fill-opacity="0.6" transform="rotate(300 100 100)"/>
+                <ellipse cx="100" cy="45" rx="4" ry="10" fill="#fff" fill-opacity="0.4" transform="rotate(30 100 100)"/>
+                <ellipse cx="100" cy="45" rx="4" ry="10" fill="#fff" fill-opacity="0.4" transform="rotate(90 100 100)"/>
+                <ellipse cx="100" cy="45" rx="4" ry="10" fill="#fff" fill-opacity="0.4" transform="rotate(150 100 100)"/>
+                <ellipse cx="100" cy="45" rx="4" ry="10" fill="#fff" fill-opacity="0.4" transform="rotate(210 100 100)"/>
+                <ellipse cx="100" cy="45" rx="4" ry="10" fill="#fff" fill-opacity="0.4" transform="rotate(270 100 100)"/>
+                <ellipse cx="100" cy="45" rx="4" ry="10" fill="#fff" fill-opacity="0.4" transform="rotate(330 100 100)"/>
+            </svg>
+
+            <!-- Row 1: Auth buttons + Language Toggle -->
+            <div class="header-top-row">
+                <button id="loginBtn"  type="button" class="auth-btn">🔑 Login</button>
+                <button id="logoutBtn" type="button" class="auth-btn" style="display:none">🚪 Logout</button>
+                <button class="lang-toggle" id="lang-toggle">
+                    <span id="lang-label">EN</span>
+                </button>
+            </div>
+
+            <!-- Row 2: Swastik + App Title + Swastik + Info button -->
+            <div class="header-title-row" style="display:flex;align-items:center;justify-content:center;gap:10px;position:relative;z-index:2;margin:2px 0">
+                <img src="swastik.png" class="swastik-svg" alt="">
+                <span id="app-title" style="font-size:22px;font-weight:700;color:#fff;text-shadow:1px 1px 4px rgba(0,0,0,0.4);font-family:'Noto Sans Gujarati',sans-serif">ગુજરાતી કૅલેન્ડર</span>
+                <img src="swastik.png" class="swastik-svg swastik-mirror" alt="">
+                <div style="position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;gap:6px;align-items:center">
+                    <button onclick="shareHoroscope()" title="Share Horoscope" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.25);border:1.5px solid rgba(255,255,255,0.7);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">⬆</button>
+                    <button onclick="showAppInfo()" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.25);border:1.5px solid rgba(255,255,255,0.7);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">i</button>
+                </div>
+            </div>
+
+            <!-- Row 3: Samvat subtitle -->
+            <div class="samvat-subtitle" id=""></div>
+
+        </div>
+
+        <!-- ═══════ QUICK ACCESS BAR ═══════ -->
+        <div class="quick-access-bar">
+            <div class="qa-btn" id="qa-choghadia">
+                <div class="qa-icon ic-chogh">
+                    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="14" cy="14" r="8" stroke="#fff" stroke-width="2"/>
+                        <line x1="14" y1="14" x2="14" y2="8"  stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+                        <line x1="14" y1="14" x2="19" y2="17" stroke="#fff" stroke-width="2"   stroke-linecap="round"/>
+                        <circle cx="14" cy="4"  r="1.5" fill="#fff"/>
+                        <circle cx="14" cy="24" r="1.5" fill="#fff"/>
+                        <circle cx="4"  cy="14" r="1.5" fill="#fff"/>
+                        <circle cx="24" cy="14" r="1.5" fill="#fff"/>
+                    </svg>
+                </div>
+                <span class="qa-label lbl-chogh" id="qa-lbl-choghadia">ચોઘડિયાં</span>
+            </div>
+            <div class="qa-btn" onclick="window.location.href='panchang.html'">
+                <div class="qa-icon ic-panch">
+                    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="5" width="22" height="20" rx="3" stroke="#fff" stroke-width="2"/>
+                        <line x1="3"  y1="11" x2="25" y2="11" stroke="#fff" stroke-width="1.5"/>
+                        <line x1="9"  y1="3"  x2="9"  y2="8"  stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="19" y1="3"  x2="19" y2="8"  stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                        <text x="14" y="23" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">ૐ</text>
+                    </svg>
+                </div>
+                <span class="qa-label lbl-panch" id="qa-lbl-panchang">પંચાંગ</span>
+            </div>
+            <div class="qa-btn" onclick="window.location.href='nakshatra.html'">
+                <div class="qa-icon ic-naksh">
+                    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="14,2 16.8,10.2 25.5,10.2 18.5,15.5 21.2,23.8 14,18.5 6.8,23.8 9.5,15.5 2.5,10.2 11.2,10.2" fill="#fff"/>
+                    </svg>
+                </div>
+                <span class="qa-label lbl-naksh" id="qa-lbl-nakshatra">નક્ષત્ર</span>
+            </div>
+            <div class="qa-btn" id="qa-suvichar">
+                <div class="qa-icon ic-suvich">
+                    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 5 Q4 3 6 3 H22 Q24 3 24 5 V16 Q24 18 22 18 H16 L12 24 L12 18 H6 Q4 18 4 16 Z" stroke="#fff" stroke-width="2" fill="none"/>
+                        <line x1="8" y1="9"  x2="20" y2="9"  stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+                        <line x1="8" y1="13" x2="16" y2="13" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="qa-label lbl-suvich" id="qa-lbl-suvichar">સુવિચાર</span>
+            </div>
+            <div class="qa-btn" onclick="window.location.href='muhurat.html'">
+                <div class="qa-icon ic-muhur">
+                    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="14" cy="14" r="9" stroke="#fff" stroke-width="2"/>
+                        <path d="M14 7 L15.5 12 L21 12 L16.5 15.5 L18.5 21 L14 17.5 L9.5 21 L11.5 15.5 L7 12 L12.5 12 Z" fill="#fff"/>
+                    </svg>
+                </div>
+                <span class="qa-label" id="qa-lbl-muhurat">મુહૂર્ત</span>
+            </div>
+            <div class="qa-btn" id="qa-more" onclick="toggleVadhuMenu()">
+                <div class="qa-icon ic-more">
+                    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="9"  cy="9"  r="3" fill="#fff"/>
+                        <circle cx="19" cy="9"  r="3" fill="#fff"/>
+                        <circle cx="9"  cy="19" r="3" fill="#fff"/>
+                        <circle cx="19" cy="19" r="3" fill="#fff"/>
+                    </svg>
+                </div>
+                <span class="qa-label lbl-more" id="qa-lbl-more">વધુ જુઓ</span>
+                
+            </div>
+            <!-- RASHI TOGGLE BUTTON -->
+            <div class="qa-btn" onclick="toggleRashiBar()" style="font-size:12px;">
+                <div class="qa-icon" style="background:linear-gradient(145deg,#ff6f00,#e65100);">
+                    ⭐
+                </div>
+                <span class="qa-label" style="color:#e65100;">રાશિફળ</span>
+            </div>
+        </div>
+
+
+        <!-- Shown only when logged in -->
+        <div class="summary-controls" id="summary-controls-bar" style="display:none">
+            <button class="ctrl-btn" id="summary-btn">📊 Monthly Summary</button>
+            <button class="ctrl-btn" id="export-btn">⬇ Export CSV</button>
+            <button class="ctrl-btn" id="clear-expenses-btn">🧹 Clear All Expenses</button>
+        </div>
+
+        <!-- Shown only when guest (not logged in) -->
+        <div class="guest-notice" id="guest-notice">
+            <span id="guest-notice-text">Want to track expenses?</span>
+            <a href="login.html" class="guest-login-link" id="guest-login-link">Login / Register</a>
+        </div>
+
+        <!-- RASHI FORECAST BAR -->
+        <div class="rashi-forecast-bar" id="rashi-forecast-bar">
+            <div class="rfb-inner">
+                <button class="rfb-close" onclick="toggleRashiBar()">✕</button>
+                <div class="rfb-scroll" id="rfb-scroll">
+                    <!-- 12 Rashi cards populated by JS -->
+                </div>
+                <div class="rfb-footer">
+                    <span id="rfb-label">Click for more →</span>
+                    <a href="horoscope.html" class="rfb-link">ફુલ હોરોસ્કોપ</a>
+                </div>
+            </div>
+        </div>
+    
+     <!-- ═══════ banner ad ═══════ --> 
+    	<script>
+          atOptions = {
+            'key' : 'a17a89d1bdf07e4c376a67f8f1e0b7d1',
+            'format' : 'iframe',
+            'height' : 50,
+            'width' : 320,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/a17a89d1bdf07e4c376a67f8f1e0b7d1/invoke.js"></script>
+
+    
+	<div id="container-3cea73fd0b4b831126b2e605d7704794"></div>
+
+
+        <!-- ═══════ WALLPAPER PREVIEW STRIP ═══════ -->
+        <div class="wp-strip">
+            <div class="wp-strip-hdr">
+                <span class="wp-strip-title">🖼 ધાર્મિક વૉલપેપર</span>
+                <button onclick="toggleVadhuMenu()" class="wp-strip-more" style="cursor:pointer;border:none">બધાં જુઓ ▾</button>
+            </div>
+            <div class="wp-thumbs" id="wp-thumbs">
+                <!--<a href="wallpaper.html" class="wp-thumb"><div class="wp-thumb-ph">🙏</div></a>
+                <a href="wallpaper.html" class="wp-thumb"><div class="wp-thumb-ph">🙏</div></a>
+                <a href="wallpaper.html" class="wp-thumb"><div class="wp-thumb-ph">🙏</div></a>
+                <a href="wallpaper.html" class="wp-thumb"><div class="wp-thumb-ph">🙏</div></a> -->
+            </div>
+        </div>
+
+        <!-- ═══════ MONTH NAVIGATION STRIP ═══════ -->
+        <div id="month-strip" style="background:var(--primary-dark,#cc4400);display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:2px solid rgba(0,0,0,0.15)">
+            <button id="prev-month" onclick="changeMonth(-1)" style="background:none;border:none;color:#fff;font-size:26px;font-weight:700;cursor:pointer;padding:0 14px;line-height:1;opacity:0.9">‹</button>
+            <div style="text-align:center;flex:1">
+                <div class="month-title" id="month-title" style="font-size:18px;font-weight:700;color:#fff;text-shadow:1px 1px 3px rgba(0,0,0,0.3);cursor:pointer" onclick="goToToday()" title="Tap to go to today">Loading...</div>
+                <div id="lunar-months-row" style="font-size:11px;color:rgba(255,255,255,0.88);font-family:'Noto Sans Gujarati',sans-serif;margin-top:1px"></div>
+                <div class="samvat-subtitle" id="samvat-subtitle"></div>
+            </div>
+            <!-- Samvat subtitle -->
+            
+
+            <button id="next-month" onclick="changeMonth(1)" style="background:none;border:none;color:#fff;font-size:26px;font-weight:700;cursor:pointer;padding:0 14px;line-height:1;opacity:0.9">›</button>
+        </div>
+        
+        <!-- ═══════ WEEKDAY HEADER ═══════ -->
+        <div class="weekday-header" id="weekday-header">
+            <div></div><div></div><div></div><div></div>
+            <div></div><div></div><div></div>
+        </div>
+
+        <!-- ═══════ DATE GRID ═══════ -->
+        <div class="date-grid" id="date-grid"></div>
+
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="view">વિગત જુઓ</div>
+        <div class="context-menu-item" data-action="add">ખર્ચ ઉમેરો</div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal" id="detail-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" id="modal-close">&times;</span>
+                <div id="modal-title"></div>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div class="modal" id="expense-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" id="expense-modal-close">&times;</span>
+                <div id="expense-modal-title">Add Expense</div>
+            </div>
+            <div id="expense-modal-body">
+                <form id="expense-form">
+                    <div class="form-row">
+                        <label>Date</label>
+                        <div id="expense-date-display"></div>
+                    </div>
+                    <div class="form-row">
+                        <label for="expense-category">Category</label>
+                        <select id="expense-category" name="categoryid" required>
+                            <option value="1">tea/coffee/food</option>
+                            <option value="2">medicine</option>
+                            <option value="3">fuel</option>
+                            <option value="4">travelling</option>
+                            <option value="5">entertainment</option>
+                            <option value="6">milk</option>
+                            <option value="7">vegetables</option>
+                            <option value="8">others</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="expense-amount">Amount</label>
+                        <input type="number" id="expense-amount" name="amount"
+                               required min="0.01" step="0.01">
+                    </div>
+                    <div class="form-row">
+                        <label for="expense-note">Note</label>
+                        <input type="text" id="expense-note" name="note" maxlength="200">
+                    </div>
+                    <div id="expense-error" class="detail-value"
+                         style="color:#c62828; margin-top:6px"></div>
+                    <button type="submit" class="nav-btn"
+                            style="width:100%; margin-top:12px">Save Expense</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Summary Modal -->
+    <div class="modal" id="summary-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" id="summary-modal-close">&times;</span>
+                <div id="summary-modal-title">Monthly Summary</div>
+            </div>
+            <div id="summary-modal-body">
+                <div id="summary-error"
+                     style="color:#c62828; margin-bottom:8px"></div>
+                <table id="summary-table"
+                       style="width:100%; border-collapse:collapse; font-size:14px">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left; border-bottom:1px solid #e0d0b8; padding:6px">Category</th>
+                            <th style="text-align:right; border-bottom:1px solid #e0d0b8; padding:6px">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <th style="text-align:left; border-top:1px solid #e0d0b8; padding:6px">Grand Total</th>
+                            <th id="summary-grand-total"
+                                style="text-align:right; border-top:1px solid #e0d0b8; padding:6px">0</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Choghadia Popup Modal -->
+    <div class="modal" id="choghadia-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" id="choghadia-modal-close">&times;</span>
+                <div id="choghadia-modal-title">આજ નાં ચોઘડિયાં</div>
+            </div>
+            <div id="choghadia-modal-body" style="padding:8px 0"></div>
+        </div>
+    </div>
+
+    <!-- Suvichar Popup Modal -->
+    <div class="modal" id="suvichar-modal">
+        <div class="modal-content" style="max-width:400px">
+            <div class="modal-header">
+                <span class="modal-close" id="suvichar-modal-close">&times;</span>
+                <div id="suvichar-modal-title">સુવિચાર</div>
+            </div>
+            <div id="suvichar-modal-body" style="padding:16px 4px;text-align:center"></div>
+        </div>
+    </div>
+
+    <script src="calendar.js?v=3"></script>
+
+	
+    <script>
+    /* ── 4 dynamic daily wallpaper thumbnails ── DEBUG VERSION ── */
+    
+    
+
+    /* ── Wallpaper lightbox ── */
+    function openWpLb(idx) {
+        const pics = window._wpPicked || [];
+        if (!pics.length) return;
+        let cur = idx;
+        const lb = document.createElement('div');
+        lb.id = 'wp-lb';
+        lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center';
+        function render() {
+            const w = pics[cur];
+            lb.innerHTML = `
+                <div style="position:absolute;top:0;left:0;right:0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,0.88),transparent);z-index:10">
+                    <button onclick="document.getElementById('wp-lb').remove();document.body.style.overflow=''"
+                        style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+                    <span style="font-size:12px;color:rgba(255,255,255,0.6)">${cur+1} / ${pics.length}</span>
+                </div>
+                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:52px 10px 90px">
+                    <img src="wallpapers/${w.file}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px">
+                </div>
+                <button onclick="cur=(cur-1+${pics.length})%${pics.length};render()"
+                    style="position:absolute;left:6px;top:50%;transform:translateY(-50%);width:42px;height:42px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:50%;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center">‹</button>
+                <button onclick="cur=(cur+1)%${pics.length};render()"
+                    style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:42px;height:42px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:50%;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center">›</button>
+                <div style="position:absolute;bottom:0;left:0;right:0;padding:14px 16px;display:flex;gap:10px;justify-content:center;background:linear-gradient(to top,rgba(0,0,0,0.9),transparent)">
+                    <button onclick="const a=document.createElement('a');a.href='wallpapers/${w.file}';a.download='${w.file}';document.body.appendChild(a);a.click();document.body.removeChild(a)"
+                        style="flex:1;max-width:185px;padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:none;font-family:inherit;background:linear-gradient(135deg,#e65c00,#ff9933);color:#fff">⬇ ડાઉનલોડ</button>
+                    <a href="wallpaper.html"
+                        style="flex:1;max-width:185px;padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid rgba(255,255,255,0.25);font-family:inherit;background:rgba(255,255,255,0.1);color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center">🖼 બધાં જુઓ</a>
+                </div>`;
+        }
+        render();
+        document.body.appendChild(lb);
+        document.body.style.overflow = 'hidden';
+        let tx = 0;
+        lb.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, {passive:true});
+        lb.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - tx;
+            if (Math.abs(dx) > 45) { cur = (cur+(dx<0?1:-1)+pics.length)%pics.length; render(); }
+        });
+    }
+    </script>
+	
+
+
+    <script>
+        /* ── Theme Switcher ──────────────────────────────────────────
+           Restores saved theme class on page load.
+           calendar.js handles all toggle logic via applyBodyTheme().
+        ─────────────────────────────────────────────────────────── */
+        (function () {
+            const saved = localStorage.getItem('calendarLang');
+            if (saved === 'en') document.body.classList.add('lang-en');
+            if (saved === 'hi') document.body.classList.add('lang-hi');
+        })();
+    </script>
+    <!-- Vadhu menu overlay -->
+    <div class="vadhu-overlay" id="vadhu-overlay" onclick="closeVadhuMenu()"></div>
+    <!-- Vadhu dropdown -->
+    <div class="vadhu-menu" id="vadhu-menu">
+        <a href="wallpaper.html">🖼 ધાર્મિક વૉલપેપર</a>
+        <!-- add more links here later -->
+    </div>
+
+    <!-- PWA Install Banner 
+    <div class="pwa-banner" id="pwa-banner">
+        <div class="pwa-banner-icon"><img src="icon-192.png" alt=""></div>
+        <div class="pwa-banner-text">
+            <div class="pwa-banner-title">ગુજ કૅલેન્ડર ઇન્સ્ટોલ કરો</div>
+            <div class="pwa-banner-sub">ક્લિક કરો અને હોમ સ્ક્રીન પર ઉમેરો</div>
+        </div>
+        <button class="pwa-install-btn" id="pwa-install-btn">ઇન્સ્ટોલ</button>
+        <button class="pwa-close-btn" id="pwa-close-btn">✕</button>
+    </div> -->
+
+    <script>
+    /* Vadhu menu */
+    function toggleVadhuMenu() {
+        document.getElementById('vadhu-menu').classList.toggle('open');
+        document.getElementById('vadhu-overlay').classList.toggle('open');
+    }
+    function closeVadhuMenu() {
+        document.getElementById('vadhu-menu').classList.remove('open');
+        document.getElementById('vadhu-overlay').classList.remove('open');
+    }
+
+    /* Service Worker */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js', { scope: './' })
+                .then(r => console.log('SW:', r.scope))
+                .catch(e => console.warn('SW failed:', e));
+        });
+    }
+
+    /* PWA Install */
+    let _prompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault(); _prompt = e;
+        if (!localStorage.getItem('pwa-dismissed'))
+            setTimeout(() => document.getElementById('pwa-banner').classList.add('show'), 3000);
+    });
+    document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+        if (!_prompt) return;
+        _prompt.prompt();
+        const { outcome } = await _prompt.userChoice;
+        _prompt = null;
+        document.getElementById('pwa-banner').classList.remove('show');
+    });
+    document.getElementById('pwa-close-btn').addEventListener('click', () => {
+        document.getElementById('pwa-banner').classList.remove('show');
+        localStorage.setItem('pwa-dismissed', '1');
+    });
+    window.addEventListener('appinstalled', () =>
+        document.getElementById('pwa-banner').classList.remove('show'));
+    </script>
+
+    <!-- ═══════---------------------------------------------------------------------- ═══════ -->
+
+    <!-- ═══════ APP INFO POPUP ═══════ -->
+    <div id="app-info-overlay" onclick="closeAppInfo()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:800"></div>
+    <div id="app-info-popup" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:16px;padding:24px 20px;max-width:320px;width:90%;z-index:801;box-shadow:0 8px 30px rgba(0,0,0,0.3)">
+        <div style="text-align:center;margin-bottom:14px">
+            <img src="icon-192.png" style="width:60px;height:60px;border-radius:14px">
+            <div style="font-size:18px;font-weight:700;color:#e65c00;margin-top:8px;font-family:'Noto Sans Gujarati',sans-serif">ગુજરાતી કૅલેન્ડર</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Gujarati Panchang App</div>
+        </div>
+        <div style="font-size:13px;color:#444;line-height:1.7;font-family:'Noto Sans Gujarati',sans-serif">
+            🗓 ગુજરાતી પંચાંગ — તિથિ, નક્ષત્ર, ચોઘડિયાં<br>
+            🕐 મુહૂર્ત શોધો — લગ્ન, ગૃહ પ્રવેશ, વ્યાપાર<br>
+            🖼 ધાર્મિક વૉલપેપર — ડાઉનલોડ કરો<br>
+            💰 ખર્ચ ટ્રૅકર — Login કરી ઉપયોગ કરો<br>
+            ⭐ Location: Ahmedabad, Gujarat<br>
+        </div>
+        <button onclick="closeAppInfo()" style="width:100%;margin-top:16px;padding:10px;background:linear-gradient(135deg,#e65c00,#ff9933);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans Gujarati',sans-serif">બંધ કરો</button>
+    </div>
+
+    <!-- ═══════ PWA INSTALL BANNER ═══════ -->
+    <div class="pwa-banner" id="pwa-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#b33000,#e65c00);padding:12px 16px;align-items:center;gap:10px;box-shadow:0 -3px 16px rgba(0,0,0,0.3)">
+        <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <img src="icon-192.png" style="width:36px;height:36px;object-fit:contain">
+        </div>
+        <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:#fff;font-family:'Noto Sans Gujarati',sans-serif">ક્લિક કરો — ઍપ ઇન્સ્ટોલ કરો</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.8);font-family:'Noto Sans Gujarati',sans-serif">હોમ સ્ક્રીન પર ગુજ કૅલેન્ડર ઉમેરો</div>
+        </div>
+        <button id="pwa-install-btn" style="background:#fff;color:#e65c00;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;font-family:'Noto Sans Gujarati',sans-serif">ઇન્સ્ટોલ</button>
+        <button id="pwa-close-btn" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:20px;cursor:pointer;padding:0 4px;flex-shrink:0">✕</button>
+    </div>
+
+    <script>
+    /* App Info */
+    function showAppInfo() {
+        document.getElementById('app-info-overlay').style.display = 'block';
+        document.getElementById('app-info-popup').style.display = 'block';
+    }
+    function closeAppInfo() {
+        document.getElementById('app-info-overlay').style.display = 'none';
+        document.getElementById('app-info-popup').style.display = 'none';
+    }
+
+    /* Service Worker */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js', {scope:'./'})
+                .catch(e => console.warn('SW:', e));
+        });
+    }
+
+    /* PWA Install */
+    let _pwaPrompt = null;
+    const _pwaBanner = document.getElementById('pwa-banner');
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        _pwaPrompt = e;
+        if (!localStorage.getItem('pwa-dismissed'))
+            setTimeout(() => _pwaBanner.style.display = 'flex', 3000);
+    });
+    document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+        if (!_pwaPrompt) return;
+        _pwaPrompt.prompt();
+        await _pwaPrompt.userChoice;
+        _pwaPrompt = null;
+        _pwaBanner.style.display = 'none';
+    });
+    document.getElementById('pwa-close-btn').addEventListener('click', () => {
+        _pwaBanner.style.display = 'none';
+        localStorage.setItem('pwa-dismissed', '1');
+    });
+    window.addEventListener('appinstalled', () => { _pwaBanner.style.display = 'none'; });
+    </script>
+    
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Gujarati Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            background: linear-gradient(135deg, #f5e6d3 0%, #d4a574 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .register-container {
+            background: linear-gradient(to bottom, #fef9f0, #f5e6d3);
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 480px;
+            width: 100%;
+            border: 3px solid #ff6600;
+        }
+        
+        .register-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .register-header h1 {
+            color: #ff6600;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .register-header p {
+            color: #5d4037;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #5d4037;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e6d5b8;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            background: #fffef9;
+            color: #2c1810;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff6600;
+            box-shadow: 0 0 10px rgba(255, 102, 0, 0.2);
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 6px;
+            color: #8d6e63;
+            font-size: 12px;
+        }
+        
+        .optional-section {
+            background: #fff8e1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border: 2px dashed #ffb74d;
+        }
+        
+        .optional-section h3 {
+            color: #ff6600;
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .warning-message {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border: 1px solid #ffb74d;
+            display: none;
+        }
+        
+        .warning-message.show {
+            display: block;
+        }
+        
+        .warning-message strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            border: 1px solid #ef5350;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            border: 1px solid #66bb6a;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        .register-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, #27ae60, #2ecc71);
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        
+        .register-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.4);
+        }
+        
+        .register-btn:active {
+            transform: translateY(0);
+        }
+        
+        .register-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #5d4037;
+            font-size: 14px;
+        }
+        
+        .login-link a {
+            color: #ff6600;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .guest-link {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e6d5b8;
+        }
+        
+        .guest-link a {
+            color: #5d4037;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .guest-link a:hover {
+            color: #ff6600;
+        }
+        
+        @media (max-width: 480px) {
+            .register-container {
+                padding: 30px 20px;
+            }
+            
+            .register-header h1 {
+                font-size: 24px;
+            }
+            
+            .optional-section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <h1>🪔 નવા વપરાશકર્તા</h1>
+            <p>Create your account to track expenses</p>
+        </div>
+        
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+        <div id="warningMessage" class="warning-message">
+            <strong>⚠️ Security Question Skipped</strong>
+            You can set a security question later in settings. Without it, password recovery will not be possible.
+        </div>
+        
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="username">Username *</label>
+                <input type="text" id="username" name="username" required autocomplete="username" minlength="3" maxlength="50">
+                <small>3-50 characters, alphanumeric</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" required autocomplete="new-password" minlength="6">
+                <small>Minimum 6 characters</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password *</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+            </div>
+            
+            <div class="optional-section">
+                <h3>🔐 Security Question (Optional but Recommended)</h3>
+                
+                <div class="form-group">
+                    <label for="secQuestion">Security Question</label>
+                    <select id="secQuestion" name="sec_question">
+                        <option value="">-- Skip (Not Recommended) --</option>
+                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        <option value="What was the name of your first school?">What was the name of your first school?</option>
+                        <option value="What is your favorite movie?">What is your favorite movie?</option>
+                        <option value="What is your pet's name?">What is your pet's name?</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="answerGroup" style="display: none;">
+                    <label for="secAnswer">Your Answer</label>
+                    <input type="text" id="secAnswer" name="sec_answer" autocomplete="off">
+                    <small>Required if you select a security question</small>
+                </div>
+            </div>
+            
+            <button type="submit" class="register-btn" id="submitBtn">Create Account</button>
+        </form>
+        
+        <div class="login-link">
+            Already have an account? <a href="login.html">Login here</a>
+        </div>
+        
+        <div class="guest-link">
+            <a href="index.html">← Continue as Guest (View Only)</a>
+        </div>
+    </div>
+
+    <script>
+        const secQuestionSelect = document.getElementById('secQuestion');
+        const answerGroup = document.getElementById('answerGroup');
+        const secAnswerInput = document.getElementById('secAnswer');
+        const warningMessage = document.getElementById('warningMessage');
+        
+        // Show/hide answer field based on security question selection
+        secQuestionSelect.addEventListener('change', () => {
+            if (secQuestionSelect.value) {
+                answerGroup.style.display = 'block';
+                secAnswerInput.required = true;
+                warningMessage.classList.remove('show');
+            } else {
+                answerGroup.style.display = 'none';
+                secAnswerInput.required = false;
+                secAnswerInput.value = '';
+            }
+        });
+        
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            const warningDiv = document.getElementById('warningMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            errorDiv.classList.remove('show');
+            successDiv.classList.remove('show');
+            warningDiv.classList.remove('show');
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const secQuestion = secQuestionSelect.value;
+            const secAnswer = secAnswerInput.value.trim();
+            
+            // Validation
+            if (!username || !password) {
+                errorDiv.textContent = 'Username and password are required';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            if (username.length < 3) {
+                errorDiv.textContent = 'Username must be at least 3 characters';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            if (secQuestion && !secAnswer) {
+                errorDiv.textContent = 'Please provide an answer to your security question';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            // Show warning if security question skipped
+            if (!secQuestion) {
+                warningDiv.classList.add('show');
+            }
+            
+            const formData = new FormData();
+            formData.append('action', 'register');
+            formData.append('username', username);
+            formData.append('password', password);
+            if (secQuestion) {
+                formData.append('sec_question', secQuestion);
+                formData.append('sec_answer', secAnswer);
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+            
+            try {
+                const response = await fetch('api.php', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successDiv.textContent = 'Account created successfully! Redirecting...';
+                    successDiv.classList.add('show');
+                    
+                    // Show warning for 2 seconds if security question skipped, then redirect
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, secQuestion ? 1500 : 2500);
+                } else {
+                    errorDiv.textContent = data.message || 'Registration failed. Please try again.';
+                    errorDiv.classList.add('show');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Account';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please check your connection.';
+                errorDiv.classList.add('show');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Account';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>પંચાંગ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans Gujarati',sans-serif;background:linear-gradient(135deg,#f3e5f5 0%,#e1bee7 100%);min-height:100vh;padding:0 0 30px}
+
+.top-bar{background:linear-gradient(135deg,#6a1b9a,#4a148c);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.back-btn{background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.6);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+.top-bar h1{color:#fff;font-size:20px;font-weight:700}
+
+.date-bar{background:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid #e1bee7;flex-wrap:wrap}
+.date-bar label{font-size:13px;font-weight:700;color:#4a148c}
+.date-bar input[type=date]{border:1.5px solid #ce93d8;border-radius:8px;padding:6px 10px;font-size:14px;color:#1a1a1a;outline:none;font-family:inherit}
+.date-bar input[type=date]:focus{border-color:#6a1b9a}
+.today-btn{background:#6a1b9a;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+
+.panch-header{background:linear-gradient(135deg,#7b1fa2,#6a1b9a);margin:14px 12px 0;border-radius:14px;padding:16px;color:#fff;text-align:center;position:relative;overflow:hidden}
+.panch-header::before{content:'ૐ';position:absolute;right:-10px;top:-5px;font-size:80px;opacity:.08;pointer-events:none}
+.panch-date-big{font-size:26px;font-weight:700;text-shadow:1px 1px 3px rgba(0,0,0,0.3)}
+.panch-weekday{font-size:14px;opacity:.85;margin-top:4px}
+.panch-samvat{font-size:12px;opacity:.7;margin-top:3px}
+
+.cards-wrap{padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+
+.panch-section{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(106,27,154,.08)}
+.section-hdr{padding:10px 16px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.hdr-purple{background:#f3e5f5;color:#4a148c}
+.hdr-orange{background:#fff3e0;color:#e65100}
+.hdr-blue  {background:#e3f2fd;color:#0d47a1}
+.hdr-green {background:#e8f5e9;color:#1b5e20}
+.hdr-red   {background:#ffebee;color:#b71c1c}
+
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:.5px solid #f5f5f5;font-size:14px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#9e9e9e;font-weight:600;min-width:100px}
+.info-val{color:#1a1a1a;font-weight:700;text-align:right;flex:1}
+.info-val.good{color:#2e7d32}
+.info-val.bad{color:#c62828}
+
+.chogh-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px}
+.chogh-mini-slot{border-radius:8px;padding:7px 10px;display:flex;flex-direction:column;gap:2px}
+.chogh-mini-name{font-size:13px;font-weight:700}
+.chogh-mini-time{font-size:11px;opacity:.75}
+.chogh-mini-now{font-size:9px;font-weight:700;background:rgba(0,0,0,.12);border-radius:4px;padding:1px 5px;display:inline-block;width:fit-content}
+.slot-good{background:#e8f5e9}
+.slot-bad {background:#ffebee}
+.slot-good .chogh-mini-name{color:#1b5e20}
+.slot-bad  .chogh-mini-name{color:#b71c1c}
+
+.loading-box{padding:32px;text-align:center;color:#9e9e9e;font-size:15px}
+.error-box{padding:20px;text-align:center;color:#c62828;font-size:14px}
+
+/* Choghadia section headers inside cards */
+.chogh-period-label{font-size:11px;font-weight:700;color:#9e9e9e;padding:8px 12px 4px;text-transform:uppercase;letter-spacing:.5px}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="back-btn" onclick="history.back()">← પાછળ</button>
+  <h1>📅 પંચાંગ</h1>
+</div>
+
+<div class="date-bar">
+  <label>તારીખ:</label>
+  <input type="date" id="date-picker">
+  <button class="today-btn" onclick="setToday()">આજે</button>
+</div>
+
+<div id="panch-header-wrap"></div>
+<div id="panch-content"><div class="loading-box">લોડ થઈ રહ્યું છે...</div></div>
+
+<script>
+const GUJ_NUM = ['૦','૧','૨','૩','૪','૫','૬','૭','૮','૯'];
+const DAYS_GU  = ['રવિવાર','સોમવાર','મંગળવાર','બુધવાર','ગુરુવાર','શુક્રવાર','શનિવાર'];
+const MONTHS_GU= ['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'];
+const GU_MONTH_NAMES=['મહા','ફાગણ','ચૈત્ર','વૈશાખ','જ્યેષ્ઠ','અષાઢ','શ્રાવણ','ભાદ્રપદ','આસો','કારતક','માગશર','પોષ'];
+
+const PAKSHA_GU = {Shukla:'શુક્લ', Krishna:'કૃષ્ણ'};
+const TITHI_GU  = {
+  Pratipada:'પ્રતિપદા',Dvitiya:'દ્વિતીયા',Tritiya:'તૃતીયા',Chaturthi:'ચતુર્થી',
+  Panchami:'પંચમી',Shashthi:'ષષ્ઠી',Saptami:'સપ્તમી',Ashtami:'અષ્ટમી',
+  Navami:'નવમી',Dashami:'દશમી',Ekadashi:'એકાદશી',Dvadashi:'દ્વાદશી',
+  Trayodashi:'ત્રયોદશી',Chaturdashi:'ચતુર્દશી',Purnima:'પૂર્ણિમા',Amavasya:'અમાવસ્યા'
+};
+const NAKSH_GU  = {
+  Ashwini:'અશ્વિની',Bharani:'ભરણી',Krittika:'કૃત્તિકા',Rohini:'રોહિણી',
+  Mrigashira:'મૃગશીર્ષ',Ardra:'આર્દ્રા',Punarvasu:'પુનર્વસુ',Pushya:'પુષ્ય',
+  Ashlesha:'આશ્લેષા',Magha:'મઘા','Purva Phalguni':'પૂ.ફાલ્ગુની','Uttara Phalguni':'ઉ.ફાલ્ગુની',
+  Hasta:'હસ્ત',Chitra:'ચિત્રા',Swati:'સ્વાતિ',Vishakha:'વિશાખા',Anuradha:'અનુરાધા',
+  Jyeshtha:'જ્યેષ્ઠા',Mula:'મૂળ','Purva Ashadha':'પૂ.અષાઢા','Uttara Ashadha':'ઉ.અષાઢા',
+  Shravana:'શ્રવણ',Dhanishta:'ધનિષ્ઠા',Shatabhisha:'શતભિષા',
+  'Purva Bhadrapada':'પૂ.ભાદ્રપદ','Uttara Bhadrapada':'ઉ.ભાદ્રપદ',Revati:'રેવતી'
+};
+const CHOGH_GU  = {Amrit:'અમૃત',Shubh:'શુભ',Labh:'લાભ',Char:'ચર',Udveg:'ઉદ્વેગ',Kaal:'કાળ',Rog:'રોગ'};
+
+function gujNum(n){ return String(n).split('').map(d=>GUJ_NUM[+d]).join(''); }
+function t(map, key){ return map[key] || key; }
+
+function formatDateStr(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function setToday(){
+  const today = new Date();
+  document.getElementById('date-picker').value = formatDateStr(today);
+  loadPanchang(formatDateStr(today));
+}
+
+async function loadPanchang(dateStr) {
+  document.getElementById('panch-header-wrap').innerHTML = '';
+  document.getElementById('panch-content').innerHTML = '<div class="loading-box">લોડ થઈ રહ્યું છે...</div>';
+
+  try {
+    const [panRes, choRes] = await Promise.all([
+      fetch(`api.php?action=panchang&date=${dateStr}`),
+      fetch(`api.php?action=choghadia&date=${dateStr}`)
+    ]);
+    const panData = await panRes.json();
+    const choData = await choRes.json();
+
+    if (!panData.success) throw new Error('panchang failed: ' + panData.message);
+
+    const p = panData.data?.panchang;
+    if (!p) throw new Error('panchang data missing in response');
+
+    const fests = panData.data.festivals || [];
+    const cd  = choData.success ? choData.data : null;
+    const d   = new Date(dateStr + 'T00:00:00');
+    const isToday = dateStr === formatDateStr(new Date());
+    const nowMins = new Date().getHours()*60 + new Date().getMinutes();
+
+    // ── Header ──
+    const month  = d.getMonth()+1;
+    const samvat = month <= 3 ? d.getFullYear()+56 : d.getFullYear()+57;
+    document.getElementById('panch-header-wrap').innerHTML = `
+      <div class="panch-header">
+        <div class="panch-date-big">${gujNum(d.getDate())} ${MONTHS_GU[d.getMonth()]} ${gujNum(d.getFullYear())}</div>
+        <div class="panch-weekday">${DAYS_GU[d.getDay()]}</div>
+        <div class="panch-samvat">સંવત ${gujNum(samvat)} · ${GU_MONTH_NAMES[month-1]}</div>
+      </div>`;
+
+    // ── Build content ──
+    let html = '<div class="cards-wrap">';
+
+    // Festivals
+    if (fests.length > 0) {
+      html += `<div class="panch-section">
+        <div class="section-hdr hdr-red">🎉 ઉત્સવ</div>
+        ${fests.map(f=>`<div class="info-row"><span class="info-val" style="text-align:left;color:#b71c1c">${f.name||f}</span></div>`).join('')}
+      </div>`;
+    }
+
+    // Panchang details
+    const tithiName   = t(TITHI_GU, p.tithi?.name||'');
+    const pakshaName  = t(PAKSHA_GU, p.tithi?.paksha||'');
+    const nakshName   = t(NAKSH_GU, p.nakshatra?.name||'');
+    html += `<div class="panch-section">
+      <div class="section-hdr hdr-purple">📿 પંચાંગ વિગત</div>
+      <div class="info-row"><span class="info-label">તિથિ</span><span class="info-val">${pakshaName} ${tithiName}</span></div>
+      <div class="info-row"><span class="info-label">નક્ષત્ર</span><span class="info-val">${nakshName}</span></div>
+      <div class="info-row"><span class="info-label">પક્ષ</span><span class="info-val">${pakshaName}</span></div>
+    </div>`;
+
+    // Sunrise / Sunset / Rahu
+    const rahu = p.rahu_kalam ? `${p.rahu_kalam.start || '-'} – ${p.rahu_kalam.end || '-'}` : '-';
+    html += `<div class="panch-section">
+      <div class="section-hdr hdr-orange">☀ સૂર્ય & કાળ</div>
+      <div class="info-row"><span class="info-label">સૂર્યોદય</span><span class="info-val good">${p.sunrise||'-'}</span></div>
+      <div class="info-row"><span class="info-label">સૂર્યાસ્ત</span><span class="info-val">${p.sunset||'-'}</span></div>
+      <div class="info-row"><span class="info-label">રાહુ કાળ</span><span class="info-val bad">${rahu}</span></div>
+    </div>`;
+
+    // Choghadia
+    if (cd && cd.choghadia) {
+      const slots = cd.choghadia;
+      const daySlots = slots.filter(s=>s.period==='day');
+      const ngtSlots = slots.filter(s=>s.period==='night');
+
+      const slotMini = (s) => {
+        const nm = CHOGH_GU[s.name]||s.name;
+        const isGood = s.quality==='good';
+        const isCurr = isToday && tToM(s.start)<=nowMins && nowMins<tToM(s.end);
+        const cls = isGood ? 'slot-good' : 'slot-bad';
+        const badge = isCurr ? `<span class="chogh-mini-now">▶ હમણાં</span>` : '';
+        return `<div class="chogh-mini-slot ${cls}">
+          <span class="chogh-mini-name">${nm}</span>
+          <span class="chogh-mini-time">${s.start}–${s.end}</span>
+          ${badge}
+        </div>`;
+      }
+
+      html += `<div class="panch-section">
+        <div class="section-hdr hdr-blue">🕐 ચોઘડિયાં</div>
+        <div class="chogh-period-label">☀ દિવસ</div>
+        <div class="chogh-mini-grid">${daySlots.map(slotMini).join('')}</div>
+        <div class="chogh-period-label">🌙 રાત</div>
+        <div class="chogh-mini-grid">${ngtSlots.map(slotMini).join('')}</div>
+      </div>`;
+    }
+
+    html += '</div>';
+    document.getElementById('panch-content').innerHTML = html;
+
+  } catch(e) {
+    console.error('Panchang load error:', e);
+    document.getElementById('panch-content').innerHTML =
+      `<div class="error-box">માહિતી લોડ કરવામાં ભૂલ: ${e.message}<br>ફરી પ્રયાસ કરો.</div>`;
+  }
+}
+
+function tToM(ts) {
+  const [h,m]=(ts||'0:0').split(':').map(Number); return h*60+m;
+}
+
+// Init
+const today = new Date();
+const todayStr = formatDateStr(today);
+document.getElementById('date-picker').value = todayStr;
+document.getElementById('date-picker').addEventListener('change', e => loadPanchang(e.target.value));
+loadPanchang(todayStr);
+</script>
+</body>
+</html>

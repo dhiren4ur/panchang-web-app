@@ -1,0 +1,791 @@
+<?php
+// api.php - Panchang + Expense + Auto Festival Engine
+
+session_start();
+require_once __DIR__ . '/PanchangCalculator.php';
+
+$dbFile = __DIR__ . '/calendar.db';
+define('AHMEDABAD_PLACE', 'Ahmedabad');
+
+// Increment this when PanchangCalculator.php is updated
+// Old cached values will be automatically discarded
+define('CALC_VERSION', 'v3');  // v1=original, v2=USNO sunrise, v3=improved moon
+
+try {
+    $pdo = new PDO('sqlite:' . $dbFile);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode(['success'=>false,'message'=>$e->getMessage()]);
+    exit;
+}
+
+function jsonResponse($success,$data=null,$message='',$httpCode=200){
+    http_response_code($httpCode);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success'=>$success,
+        'message'=>$message,
+        'data'=>$data
+    ]);
+    exit;
+}
+
+function requireLogin(){
+    if(empty($_SESSION['user_id'])){
+        jsonResponse(false,null,'Authentication required',401);
+    }
+    return (int)$_SESSION['user_id'];
+}
+
+function getParam($name,$default=null){
+    return $_GET[$name] ?? $_POST[$name] ?? $default;
+}
+
+$action = getParam('action');
+
+switch($action){
+
+    case 'session':
+        jsonResponse(true,['loggedIn'=>!empty($_SESSION['user_id'])]);
+        break;
+
+    case 'register': handleRegister($pdo); break;
+    case 'login': handleLogin($pdo); break;
+    case 'logout': handleLogout(); break;
+
+    case 'panchang': handlePanchangSingleDate($pdo); break;
+    case 'panchang_month': handlePanchangMonth($pdo); break;
+    case 'choghadia': handleChoghadia($pdo); break;
+    case 'muhurat': handleMuhurat($pdo); break;
+    case 'clear_cache': handleClearCache($pdo); break;
+
+    case 'add_expense': handleAddExpense($pdo); break;
+    case 'expenses_by_date': handleExpensesByDate($pdo); break;
+    case 'month_summary': handleMonthSummary($pdo); break;
+    case 'clear_expenses': handleClearExpenses($pdo); break;
+    case 'month_csv': handleMonthCsv($pdo); break;
+
+    default:
+        jsonResponse(false,null,'Unknown action',400);
+}
+
+#########################################
+# PANCHANG SINGLE DATE
+#########################################
+
+function handlePanchangSingleDate($pdo){
+
+$date = getParam('date',date('Y-m-d'));
+
+// Check cache — only use if version matches current calculator
+$stmt=$pdo->prepare('SELECT data_json, location FROM panchang_cache WHERE date=:d');
+$stmt->execute(['d'=>$date]);
+$row=$stmt->fetch(PDO::FETCH_ASSOC);
+
+// Use cache only if it was saved with current calculator version
+$cache_valid = $row && isset(json_decode($row['data_json'],true)['_v'])
+               && json_decode($row['data_json'],true)['_v'] === CALC_VERSION;
+
+if($cache_valid){
+    $panchang=json_decode($row['data_json'],true);
+}else{
+
+$panchang=calculatePanchang($date);
+$panchang['_v'] = CALC_VERSION;  // stamp version into cached data
+
+$stmt=$pdo->prepare('INSERT OR REPLACE INTO panchang_cache(date,location,data_json)
+VALUES(:d,:loc,:json)');
+
+$stmt->execute([
+'d'=>$date,
+'loc'=>AHMEDABAD_PLACE,
+'json'=>json_encode($panchang)
+]);
+}
+
+$festivals=getFestivals($pdo,$date);
+
+/* ADD AUTO FESTIVALS */
+
+$auto=getAutoFestivals($date,$panchang);
+
+foreach($auto as $f){
+$festivals[]=[
+'name'=>$f,
+'type'=>'auto'
+];
+}
+
+jsonResponse(true,[
+'date'=>$date,
+'panchang'=>$panchang,
+'festivals'=>$festivals
+]);
+}
+
+#########################################
+# PANCHANG MONTH
+#########################################
+
+function handlePanchangMonth($pdo){
+
+$year=(int)getParam('year',date('Y'));
+$month=(int)getParam('month',date('m'));
+
+$days=date('t',strtotime("$year-$month-01"));
+
+$result=[];
+
+for($d=1;$d<=$days;$d++){
+
+$date=sprintf('%04d-%02d-%02d',$year,$month,$d);
+
+$panchang=calculatePanchang($date);
+
+$result[$date]=$panchang;
+
+/* AUTO FESTIVALS */
+
+$auto=getAutoFestivals($date,$panchang);
+
+if($auto){
+$result[$date]['festivals']=$auto;
+}
+
+}
+
+jsonResponse(true,[
+'year'=>$year,
+'month'=>$month,
+'days'=>$result
+]);
+}
+
+#########################################
+# PANCHANG CALC
+#########################################
+
+function calculatePanchang($date){
+list($y,$m,$d)=explode('-',$date);
+$calc=new PanchangCalculator();
+return $calc->calculate((int)$y,(int)$m,(int)$d);
+}
+
+#########################################
+# CHOGHADIA
+#########################################
+
+function handleChoghadia($pdo){
+    $date     = getParam('date', date('Y-m-d'));
+    $panchang = calculatePanchang($date);
+    $slots    = calculateChoghadia($date, $panchang['sunrise'], $panchang['sunset']);
+    jsonResponse(true, [
+        'date'      => $date,
+        'sunrise'   => $panchang['sunrise'],
+        'sunset'    => $panchang['sunset'],
+        'choghadia' => $slots
+    ]);
+}
+
+function calculateChoghadia($date, $sunrise, $sunset) {
+    /*
+     * Traditional choghadia sequence (repeats in cycle of 8):
+     * Udveg=0, Char=1, Labh=2, Amrit=3, Kaal=4, Shubh=5, Rog=6, Udveg=7
+     *
+     * First day-choghadia index per weekday (0=Sun..6=Sat):
+     *   Sun=6(Udveg), Mon=2(Labh), Tue=7(Udveg), Wed=5(Shubh),
+     *   Thu=4(Kaal), Fri=3(Amrit), Sat=1(Char)
+     *
+     * First night-choghadia index per weekday (0=Sun..6=Sat):
+     *   Sun=1(Char), Mon=5(Shubh), Tue=3(Amrit), Wed=4(Kaal),
+     *   Thu=7(Udveg), Fri=2(Labh), Sat=6(Udveg)
+     */
+
+    $names = ['Udveg','Char','Labh','Amrit','Kaal','Shubh','Rog','Udveg'];
+
+    $quality = [
+        'Amrit' => 'good',
+        'Shubh' => 'good',
+        'Labh'  => 'good',
+        'Char'  => 'good',
+        'Udveg' => 'bad',
+        'Kaal'  => 'bad',
+        'Rog'   => 'bad',
+    ];
+
+    // First slot index for DAY, keyed by weekday (0=Sun)
+    $dayStart   = [0=>6, 1=>2, 2=>7, 3=>5, 4=>4, 5=>3, 6=>1];
+    // First slot index for NIGHT, keyed by weekday (0=Sun)
+    $nightStart = [0=>1, 1=>5, 2=>3, 3=>4, 4=>7, 5=>2, 6=>6];
+
+    $weekday = (int)date('w', strtotime($date));   // 0=Sun
+
+    list($srH, $srM) = explode(':', $sunrise);
+    list($ssH, $ssM) = explode(':', $sunset);
+
+    $srMin  = (int)$srH * 60 + (int)$srM;
+    $ssMin  = (int)$ssH * 60 + (int)$ssM;
+    $srNext = $srMin + 24 * 60;   // next sunrise approx
+
+    $daySlot   = ($ssMin - $srMin) / 8;
+    $nightSlot = ($srNext - $ssMin) / 8;
+
+    $slots = [];
+
+    // 8 day slots (sunrise → sunset)
+    $idx = $dayStart[$weekday];
+    for ($i = 0; $i < 8; $i++) {
+        $start = $srMin + $i * $daySlot;
+        $end   = $start + $daySlot;
+        $name  = $names[$idx % 8];
+        $slots[] = [
+            'name'    => $name,
+            'quality' => $quality[$name] ?? 'neutral',
+            'start'   => minsToTime($start),
+            'end'     => minsToTime($end),
+            'period'  => 'day'
+        ];
+        $idx++;
+    }
+
+    // 8 night slots (sunset → next sunrise)
+    $idx = $nightStart[$weekday];
+    for ($i = 0; $i < 8; $i++) {
+        $start = $ssMin + $i * $nightSlot;
+        $end   = $start + $nightSlot;
+        $name  = $names[$idx % 8];
+        $slots[] = [
+            'name'    => $name,
+            'quality' => $quality[$name] ?? 'neutral',
+            'start'   => minsToTime($start),
+            'end'     => minsToTime($end),
+            'period'  => 'night'
+        ];
+        $idx++;
+    }
+
+    return $slots;
+}
+
+function minsToTime($mins) {
+    $mins = (int)round($mins) % (24 * 60);
+    if ($mins < 0) $mins += 24 * 60;
+    return sprintf('%02d:%02d', floor($mins / 60), $mins % 60);
+}
+
+#########################################
+# DATABASE FESTIVALS
+#########################################
+
+function getFestivals($pdo,$date){
+
+$stmt=$pdo->prepare('SELECT name,type FROM festivals WHERE date=:d');
+$stmt->execute(['d'=>$date]);
+
+return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+#########################################
+# AUTO FESTIVAL ENGINE
+#########################################
+
+function getAutoFestivals($date,$panchang){
+
+$ts=strtotime($date);
+$y=date('Y',$ts);
+$m=date('n',$ts);
+$d=date('j',$ts);
+
+$fest=[];
+
+######## NATIONAL ########
+
+if($m==1 && $d==26) $fest[]="Republic Day";
+if($m==8 && $d==15) $fest[]="Independence Day";
+if($m==10 && $d==2) $fest[]="Gandhi Jayanti";
+if($m==11 && $d==14) $fest[]="Children's Day";
+if($m==5 && $d==1) $fest[]="Labour Day";
+
+######## CHRISTIAN ########
+
+$easter=easter_date($y);
+
+if($date==date('Y-m-d',$easter))
+$fest[]="Easter";
+
+if($date==date('Y-m-d',strtotime('-2 days',$easter)))
+$fest[]="Good Friday";
+
+if($m==12 && $d==25)
+$fest[]="Christmas";
+
+######## SIKH ########
+
+if($m==4 && $d==13)
+$fest[]="Baisakhi";
+
+if($m==11 && $d==27)
+$fest[]="Guru Nanak Jayanti";
+
+######## REGIONAL ########
+
+if($m==1 && $d==14)
+$fest[]="Makar Sankranti";
+
+if($m==1 && $d==15)
+$fest[]="Pongal";
+
+######## HINDU BY TITHI ########
+
+if(isset($panchang['tithi'])){
+
+$tithi=$panchang['tithi']['number'];
+$paksha=$panchang['tithi']['paksha'];
+$nak=$panchang['nakshatra_name'] ?? '';
+
+######## VRAT — EKADASHI (both paksha every month) ########
+
+if($tithi==11 && $paksha=='Shukla') {
+    // Shukla Ekadashi names by Gujarati month (lunar)
+    $lunar=$panchang['lunar_month'] ?? '';
+    $ekaNames=[
+        'Chaitra'=>'કામદા એકાદશી','Vaishakha'=>'મોહિની એકાદશી',
+        'Jyeshtha'=>'નિર્જળા એકાદશી','Ashadha'=>'દેવશયની એકાદશી',
+        'Shravana'=>'પુત્રદા એકાદશી','Bhadrapada'=>'પદ્મા એકાદશી',
+        'Ashwin'=>'પાપાંકુશા એકાદશી','Kartika'=>'દેવ ઉઠી એકાદશી',
+        'Margashirsha'=>'મોક્ષદા એકાદશી','Pausha'=>'પુત્રદા એકાદશી',
+        'Magha'=>'જયા એકાદશી','Phalguna'=>'આમળકી એકાદશી'
+    ];
+    $fest[]=($ekaNames[$lunar] ?? 'શુક્લ એકાદશી').' (એકાદશી વ્રત)';
+}
+
+if($tithi==11 && $paksha=='Krishna') {
+    $lunar=$panchang['lunar_month'] ?? '';
+    $ekaNames=[
+        'Chaitra'=>'વરૂથિની એકાદશી','Vaishakha'=>'અપરા એકાદશી',
+        'Jyeshtha'=>'યોગિની એકાદશી','Ashadha'=>'કામિકા એકાદશી',
+        'Shravana'=>'અજા એકાદશી','Bhadrapada'=>'ઇન્દિરા એકાદશી',
+        'Ashwin'=>'રમા એકાદશી','Kartika'=>'ઉત્પત્તિ એકાદશી',
+        'Margashirsha'=>'સફળા એકાદશી','Pausha'=>'ષટ્-તિલા એકાદશી',
+        'Magha'=>'વિજયા એકાદશી','Phalguna'=>'પાપ-મોચની એકાદશી'
+    ];
+    $fest[]=($ekaNames[$lunar] ?? 'કૃષ્ણ એકાદશી').' (એકાદશી વ્રત)';
+}
+
+######## VRAT — PRADOSH (13th tithi both paksha) ########
+
+if($tithi==13) {
+    $prad = $paksha=='Shukla' ? 'શુક્લ પ્રદોષ વ્રત' : 'કૃષ્ણ પ્રદોષ વ્રત';
+    // Shani Pradosh if Saturday
+    if(date('w',$ts)==6) $prad='શનિ પ્રદોષ વ્રત ⭐';
+    $fest[]=$prad;
+}
+
+######## VRAT — CHATURTHI ########
+
+if($tithi==4 && $paksha=='Krishna')
+    $fest[]='સંકષ્ટ ચતુર્થી (ગણેશ વ્રત)';
+
+if($tithi==4 && $paksha=='Shukla')
+    $fest[]='વિનાયક ચતુર્થી';
+
+######## VRAT — ASHTAMI ########
+
+if($tithi==8 && $paksha=='Krishna')
+    $fest[]='કૃષ્ણ અષ્ટમી';
+
+if($tithi==8 && $paksha=='Shukla')
+    $fest[]='દુર્ગા અષ્ટમી';
+
+######## VRAT — PURNIMA ########
+
+if($tithi==15 && $paksha=='Shukla') {
+    $lunar=$panchang['lunar_month'] ?? '';
+    $purNames=[
+        'Chaitra'=>'ચૈત્ર પૂર્ણિમા','Vaishakha'=>'બુદ્ધ પૂર્ણિમા',
+        'Jyeshtha'=>'જ્યેષ્ઠ પૂર્ણિમા','Ashadha'=>'ગુરુ પૂર્ણિમા',
+        'Shravana'=>'શ્રાવણ પૂર્ણિમા (રક્ષા બંધન)','Bhadrapada'=>'ભાદ્ર પૂર્ણિમા',
+        'Ashwin'=>'શરદ પૂર્ણિમા ⭐','Kartika'=>'કારતક પૂર્ણિમા (દેવ દિવાળી)',
+        'Margashirsha'=>'માર્ગ પૂર્ણિમા','Pausha'=>'પોષ પૂર્ણિમા',
+        'Magha'=>'મૌની અમાવસ્યા','Phalguna'=>'હોળી પૂર્ણિમા'
+    ];
+    $fest[]=($purNames[$lunar] ?? 'પૂર્ણિમા');
+}
+
+######## VRAT — AMAVASYA ########
+
+if($tithi==15 && $paksha=='Krishna') {
+    $lunar=$panchang['lunar_month'] ?? '';
+    $amaNames=[
+        'Ashwin'=>'દિવાળી - લક્ષ્મીપૂજન ⭐','Magha'=>'મૌની અમાવસ્યા',
+        'Bhadrapada'=>'ભાદ્ર અમાવસ્યા (Pitru Paksha)'
+    ];
+    $fest[]=($amaNames[$lunar] ?? 'અમાવસ્યા');
+}
+
+######## VRAT — MONDAY (Somvar Vrat) ########
+
+if(date('w',$ts)==1)
+    $fest[]='સોમવાર (શિવ પૂજા)';
+
+######## VRAT — SATURDAY (Shani Vrat) ########
+
+if(date('w',$ts)==6 && $tithi!=13)  // avoid duplicate with Shani Pradosh
+    $fest[]='શનિવાર (શનિ પૂજા)';
+
+######## VRAT — NAKSHATRA BASED ########
+
+if($nak=='Rohini')      $fest[]='રોહિણી વ્રત';
+if($nak=='Pushya')      $fest[]='પુષ્ય નક્ષત્ર (શુભ)';
+if($nak=='Shravana')    $fest[]='શ્રાવણ નક્ષત્ર';
+if($nak=='Revati')      $fest[]='રેવતી (શુભ)';
+
+if($paksha=='Krishna' && $tithi==14 && $m==2)
+$fest[]="Maha Shivaratri";
+
+if($paksha=='Shukla' && $tithi==9 && $m==3)
+$fest[]="Ram Navami";
+
+if($paksha=='Shukla' && $tithi==15 && $m==3)
+$fest[]="Holi";
+
+if($paksha=='Shukla' && $tithi==15 && $m==7)
+$fest[]="Guru Purnima";
+
+if($paksha=='Shukla' && $tithi==15 && $m==8)
+$fest[]="Raksha Bandhan";
+
+if($paksha=='Krishna' && $tithi==8 && $m==8)
+$fest[]="Janmashtami";
+
+if($paksha=='Shukla' && $tithi==4 && $m==9)
+$fest[]="Ganesh Chaturthi";
+
+if($paksha=='Shukla' && $tithi==10 && $m==10)
+$fest[]="Dussehra";
+
+if($paksha=='Krishna' && $tithi==15 && $m==10)
+$fest[]="Diwali";
+}
+
+######## ISLAMIC APPROX ########
+
+$eidFitr=strtotime("$y-04-10");
+$eidAdha=strtotime("$y-06-17");
+
+if($ts==$eidFitr)
+$fest[]="Eid ul-Fitr";
+
+if($ts==$eidAdha)
+$fest[]="Eid ul-Adha";
+
+return $fest;
+}
+
+#########################################
+
+#########################################
+# MUHURAT FINDER
+#########################################
+
+function handleMuhurat($pdo) {
+    $purpose    = getParam('purpose', 'wedding');
+    $from_date  = getParam('from',    date('Y-m-d'));
+    $to_date    = getParam('to',      date('Y-m-d', strtotime('+30 days')));
+
+    $from_ts = strtotime($from_date);
+    $to_ts   = strtotime($to_date);
+    if (($to_ts - $from_ts) > 90 * 86400) $to_ts = $from_ts + 90 * 86400;
+
+    $rules = [
+        'wedding'    => ['label'=>'લગ્ન મુહૂર્ત','label_en'=>'Wedding',
+            'good_tithi'=>[2,3,5,7,10,11,13],'bad_tithi'=>[1,4,6,8,9,12,14,15,30],
+            'good_vara'=>['Monday','Wednesday','Thursday','Friday'],'bad_vara'=>['Tuesday','Saturday','Sunday'],
+            'good_nakshatra'=>[3,6,7,8,12,13,14,15,20,21,22,24,25,26],'bad_nakshatra'=>[9,10,18,19,23]],
+        'griha_pravesh'=>['label'=>'ગૃહ પ્રવેશ','label_en'=>'Griha Pravesh',
+            'good_tithi'=>[2,3,5,7,10,11,13],'bad_tithi'=>[4,6,8,9,12,14,15,30],
+            'good_vara'=>['Wednesday','Thursday','Friday','Monday'],'bad_vara'=>['Saturday','Tuesday'],
+            'good_nakshatra'=>[3,6,7,8,13,14,15,22,24,25,26,27],'bad_nakshatra'=>[9,10,18,19]],
+        'business'   => ['label'=>'વ્યાપાર શુભારંભ','label_en'=>'Business Start',
+            'good_tithi'=>[1,2,3,5,6,7,10,11,13],'bad_tithi'=>[4,8,9,12,14,15,30],
+            'good_vara'=>['Wednesday','Thursday','Friday','Monday','Sunday'],'bad_vara'=>['Saturday','Tuesday'],
+            'good_nakshatra'=>[1,2,3,6,7,8,12,13,14,15,20,22,24,25,26],'bad_nakshatra'=>[9,10,18,19]],
+        'vehicle'    => ['label'=>'વાહન ખરીદી','label_en'=>'Vehicle Purchase',
+            'good_tithi'=>[2,3,5,6,7,10,11,12,13],'bad_tithi'=>[4,8,9,14,15,30],
+            'good_vara'=>['Wednesday','Thursday','Friday','Monday'],'bad_vara'=>['Saturday','Tuesday'],
+            'good_nakshatra'=>[2,3,6,7,8,12,13,14,22,24,25,26],'bad_nakshatra'=>[9,10,18,19]],
+        'namkaran'   => ['label'=>'નામકરણ','label_en'=>'Namkaran',
+            'good_tithi'=>[1,2,3,5,6,7,10,11,13],'bad_tithi'=>[4,8,9,12,14,15,30],
+            'good_vara'=>['Monday','Wednesday','Thursday','Friday'],'bad_vara'=>['Tuesday','Saturday'],
+            'good_nakshatra'=>[2,3,6,7,8,12,13,14,15,20,22,24,25,26,27],'bad_nakshatra'=>[9,10,18,19]],
+        'engagement' => ['label'=>'સગાઈ','label_en'=>'Engagement',
+            'good_tithi'=>[2,3,5,7,10,11,13],'bad_tithi'=>[4,6,8,9,12,14,15,30],
+            'good_vara'=>['Monday','Wednesday','Thursday','Friday'],'bad_vara'=>['Tuesday','Saturday','Sunday'],
+            'good_nakshatra'=>[3,6,7,8,12,13,14,15,20,21,22,24,25,26],'bad_nakshatra'=>[9,10,18,19,23]],
+    ];
+
+    $rule = $rules[$purpose] ?? $rules['wedding'];
+    $weekday_map = [0=>'Sunday',1=>'Monday',2=>'Tuesday',3=>'Wednesday',4=>'Thursday',5=>'Friday',6=>'Saturday'];
+    $vara_gu = ['Sunday'=>'રવિ','Monday'=>'સોમ','Tuesday'=>'મંગળ','Wednesday'=>'બુધ',
+                'Thursday'=>'ગુરુ','Friday'=>'શુક્ર','Saturday'=>'શનિ'];
+
+    $results = [];
+    $cur_ts  = $from_ts;
+
+    while ($cur_ts <= $to_ts) {
+        $date    = date('Y-m-d', $cur_ts);
+        $p       = calculatePanchang($date);
+        $score   = 0;
+        $flags   = [];
+        $weekday = $weekday_map[(int)date('w', $cur_ts)];
+
+        if (in_array($weekday, $rule['bad_vara']))              { $cur_ts += 86400; continue; }
+        if (in_array((int)($p['tithi']['number']??0), $rule['bad_tithi'])) { $cur_ts += 86400; continue; }
+
+        if (in_array($weekday, $rule['good_vara']))             { $score += 30; $flags[] = ['type'=>'good','msg'=>'શુભ વાર']; }
+        if (in_array((int)($p['tithi']['number']??0), $rule['good_tithi'])) { $score += 30; $flags[] = ['type'=>'good','msg'=>'શુભ તિથિ']; }
+
+        $nak = (int)($p['nakshatra_number'] ?? ($p['nakshatra']['number'] ?? 0));
+        if (in_array($nak, $rule['bad_nakshatra']))             { $score -= 20; $flags[] = ['type'=>'warn','msg'=>'અશુભ નક્ષત્ર']; }
+        elseif (in_array($nak, $rule['good_nakshatra']))        { $score += 25; $flags[] = ['type'=>'good','msg'=>'શુભ નક્ષત્ર']; }
+
+        $slots      = calculateChoghadia($date, $p['sunrise'], $p['sunset']);
+        $best_slots = array_values(array_filter($slots, function($s){ return $s['quality']==='good' && $s['period']==='day'; }));
+        if (count($best_slots) >= 3)                            { $score += 15; $flags[] = ['type'=>'good','msg'=>'ઉત્તમ ચોઘડિયાં']; }
+
+        if ($score < 30) { $cur_ts += 86400; continue; }
+
+        $rating = $score >= 80 ? 'best' : ($score >= 55 ? 'good' : 'ok');
+
+        $results[] = [
+            'date'         => $date,
+            'display_date' => date('d M Y', $cur_ts),
+            'day_en'       => $weekday,
+            'day_gu'       => $vara_gu[$weekday] ?? $weekday,
+            'tithi'        => $p['tithi']['name']   ?? '',
+            'tithi_gu'     => $p['tithi_gu']        ?? ($p['tithi']['name'] ?? ''),
+            'nakshatra'    => $p['nakshatra']['name'] ?? ($p['nakshatra_name'] ?? ''),
+            'nakshatra_gu' => $p['nakshatra']['gu']   ?? ($p['nakshatra_gu']   ?? ''),
+            'yoga'         => $p['yoga']            ?? '',
+            'sunrise'      => $p['sunrise']         ?? '',
+            'sunset'       => $p['sunset']          ?? '',
+            'score'        => $score,
+            'rating'       => $rating,
+            'flags'        => $flags,
+            'best_slots'   => array_slice($best_slots, 0, 3),
+        ];
+        $cur_ts += 86400;
+    }
+
+    usort($results, function($a,$b){ return $b['score'] - $a['score']; });
+
+    jsonResponse(true, [
+        'purpose'     => $purpose,
+        'label'       => $rule['label'],
+        'label_en'    => $rule['label_en'],
+        'from'        => $from_date,
+        'to'          => date('Y-m-d', $to_ts),
+        'total_found' => count($results),
+        'muhurats'    => $results,
+    ]);
+}
+
+# CACHE MANAGEMENT
+#########################################
+
+function handleClearCache($pdo) {
+    try {
+        $stmt = $pdo->prepare('DELETE FROM panchang_cache');
+        $stmt->execute();
+        $count = $stmt->rowCount();
+        jsonResponse(true, ['deleted' => $count], "Cache cleared: $count records deleted");
+    } catch (Exception $e) {
+        jsonResponse(false, null, 'Cache clear failed: ' . $e->getMessage());
+    }
+}
+
+#########################################
+# EXPENSE SYSTEM (UNCHANGED)
+#########################################
+
+function handleRegister($pdo){
+
+$username=trim(getParam('username',''));
+$password=getParam('password','');
+
+$hash=password_hash($password,PASSWORD_DEFAULT);
+
+$stmt=$pdo->prepare(
+'INSERT INTO users(username,password_hash)
+VALUES(:u,:p)'
+);
+
+$stmt->execute([
+'u'=>$username,
+'p'=>$hash
+]);
+
+jsonResponse(true,null,'User registered');
+}
+
+function handleLogin($pdo){
+
+$username=getParam('username');
+$password=getParam('password');
+
+$stmt=$pdo->prepare('SELECT id,password_hash FROM users WHERE username=:u');
+$stmt->execute(['u'=>$username]);
+
+$user=$stmt->fetch(PDO::FETCH_ASSOC);
+
+if(!$user || !password_verify($password,$user['password_hash'])){
+jsonResponse(false,null,'Invalid login',401);
+}
+
+$_SESSION['user_id']=$user['id'];
+
+jsonResponse(true,['user_id'=>$user['id']],'Login success');
+}
+
+function handleLogout(){
+
+$_SESSION=[];
+session_destroy();
+
+jsonResponse(true,null,'Logged out');
+}
+
+function handleAddExpense($pdo){
+
+$uid=requireLogin();
+
+$date=getParam('date');
+$cat=getParam('category_id');
+$amount=getParam('amount');
+$note=getParam('note');
+
+$stmt=$pdo->prepare(
+'INSERT INTO expenses(user_id,date,category_id,amount,note)
+VALUES(:u,:d,:c,:a,:n)'
+);
+
+$stmt->execute([
+'u'=>$uid,
+'d'=>$date,
+'c'=>$cat,
+'a'=>$amount,
+'n'=>$note
+]);
+
+jsonResponse(true,null,'Expense added');
+}
+
+function handleExpensesByDate($pdo){
+
+$uid=requireLogin();
+$date=getParam('date');
+
+$stmt=$pdo->prepare(
+'SELECT * FROM expenses
+WHERE user_id=:u AND date=:d'
+);
+
+$stmt->execute([
+'u'=>$uid,
+'d'=>$date
+]);
+
+jsonResponse(true,$stmt->fetchAll(PDO::FETCH_ASSOC));
+}
+
+function handleMonthSummary($pdo){
+
+$uid=requireLogin();
+$year=getParam('year');
+$month=getParam('month');
+
+// Category-wise breakdown
+$stmt=$pdo->prepare(
+'SELECT COALESCE(c.name,"Uncategorized") AS category,
+        SUM(e.amount) AS total
+ FROM expenses e
+ LEFT JOIN categories c ON c.id = e.category_id
+ WHERE e.user_id=:u
+ AND strftime("%Y",e.date)=:y
+ AND strftime("%m",e.date)=:m
+ GROUP BY e.category_id
+ ORDER BY total DESC'
+);
+
+$stmt->execute([
+'u'=>$uid,
+'y'=>$year,
+'m'=>sprintf('%02d',$month)
+]);
+
+$rows=$stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Grand total
+$grand=array_sum(array_column($rows,'total'));
+
+jsonResponse(true,['rows'=>$rows,'grand_total'=>$grand]);
+}
+
+function handleClearExpenses($pdo){
+
+$uid=requireLogin();
+
+$pdo->prepare('DELETE FROM expenses WHERE user_id=:u')
+->execute(['u'=>$uid]);
+
+jsonResponse(true,null,'All expenses cleared');
+}
+
+function handleMonthCsv($pdo){
+
+$uid=requireLogin();
+
+$year=getParam('year');
+$month=getParam('month');
+
+$stmt=$pdo->prepare(
+'SELECT e.date,
+        COALESCE(c.name,"Uncategorized") AS category,
+        e.amount,
+        e.note
+ FROM expenses e
+ LEFT JOIN categories c ON c.id = e.category_id
+ WHERE e.user_id=:u
+ AND strftime("%Y",e.date)=:y
+ AND strftime("%m",e.date)=:m
+ ORDER BY e.date ASC'
+);
+
+$stmt->execute([
+'u'=>$uid,
+'y'=>$year,
+'m'=>sprintf('%02d',$month)
+]);
+
+// Dynamic filename: expenses-2025-04.csv
+$filename='expenses-'.$year.'-'.sprintf('%02d',$month).'.csv';
+
+header('Content-Type: text/csv; charset=utf-8');
+header('Content-Disposition: attachment; filename="'.$filename.'"');
+
+$out=fopen('php://output','w');
+
+// UTF-8 BOM so Excel opens Gujarati notes correctly
+fprintf($out,chr(0xEF).chr(0xBB).chr(0xBF));
+
+fputcsv($out,['Date','Category','Amount','Note']);
+
+foreach($stmt as $row){
+fputcsv($out,$row);
+}
+
+fclose($out);
+exit;
+}
+?>

@@ -1,0 +1,40 @@
+{
+  "name": "ગુજરાતી કૅલેન્ડર - પંચાંગ",
+  "short_name": "ગુજ કૅલેન્ડર",
+  "description": "ગુજરાતી પંચાંગ, મુહૂર્ત, ચોઘડિયાં અને ખર્ચ ટ્રૅકર",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ff6600",
+  "theme_color": "#e65c00",
+  "lang": "gu",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "પંચાંગ",
+      "url": "./panchang.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "મુહૂર્ત",
+      "url": "./muhurat.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["lifestyle", "utilities"],
+  "screenshots": []
+}

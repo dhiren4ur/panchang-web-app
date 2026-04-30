@@ -1,0 +1,22 @@
+Options -Indexes
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(html|htm|php)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>
+
+# Allow specific bots
+SetEnvIfNoCase User-Agent "Googlebot" allow_bot
+SetEnvIfNoCase User-Agent "Bingbot" allow_bot
+# Allow empty or missing User-Agent (API/tool requests)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Remove any block on empty user agents
+</IfModule>
+
+# Or simply remove any Deny rules entirely
+Order Allow,Deny
+Allow from all

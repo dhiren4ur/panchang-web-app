@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rashifal - Prokerala API Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #faf7f2;
+      --surface: #f5f1ea;
+      --surface-2: #eee6d8;
+      --text: #2c2116;
+      --muted: #7d6650;
+      --border: rgba(70,40,10,.12);
+      --primary: #bb4a1d;
+      --primary-hover: #953816;
+      --primary-soft: #faece5;
+      --success: #2d7444;
+      --error: #a52a2a;
+      --radius: 14px;
+      --shadow: 0 8px 28px rgba(60,28,0,.08);
+      --font-display: 'Noto Serif', Georgia, serif;
+      --font-body: 'Inter', sans-serif;
+    }
+    [data-theme="dark"] {
+      --bg: #19120d;
+      --surface: #211812;
+      --surface-2: #2b1f17;
+      --text: #ead8c1;
+      --muted: #a0866f;
+      --border: rgba(255,220,170,.10);
+      --primary: #e17347;
+      --primary-hover: #c75a2f;
+      --primary-soft: #3a2014;
+      --success: #55a16d;
+      --error: #df6666;
+      --shadow: 0 8px 30px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 24px;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 600;
+    }
+    .sub { font-size: 14px; color: var(--muted); }
+    .theme {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+    .box h2 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      margin-bottom: 18px;
+    }
+    .types {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .tab {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .sign {
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: .15s;
+    }
+    .sign:hover { transform: translateY(-1px); }
+    .sign.active {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .emoji { font-size: 24px; margin-bottom: 6px; }
+    .name { font-size: 14px; font-weight: 600; }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .status { font-size: 14px; color: var(--muted); }
+    pre {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 12px;
+      overflow: auto;
+      max-height: 500px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .help li { margin-left: 18px; margin-bottom: 8px; }
+    code {
+      background: var(--surface-2);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 580px) {
+      body { padding: 14px; }
+      .top { align-items: flex-start; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="logo">♈</div>
+        <div>
+          <h1>Rashifal</h1>
+          <div class="sub">Prokerala DailyPrediction test page</div>
+        </div>
+      </div>
+      <button class="theme" id="themeBtn" type="button">🌙</button>
+    </div>
+
+    <div class="box">
+      <h2>Choose Period</h2>
+      <div class="types" id="types">
+        <button class="tab active" data-period="today" type="button">Today</button>
+        <button class="tab" data-period="yesterday" type="button">Yesterday</button>
+        <button class="tab" data-period="tomorrow" type="button">Tomorrow</button>
+      </div>
+
+      <h2>Select Rashi</h2>
+      <div class="grid" id="signGrid"></div>
+
+      <div class="controls">
+        <button class="btn" id="fetchBtn" type="button">Get Rashifal</button>
+        <div class="status" id="statusText">Ready to test API</div>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>API Response</h2>
+      <pre id="resultBox">No request made yet.</pre>
+    </div>
+
+    <div class="box help">
+      <h2>How to use</h2>
+      <ul>
+        <li>Put your Prokerala <b>client_id</b> and <b>client_secret</b> inside <code>rashifal-api.php</code>.</li>
+        <li>Upload this file and <code>rashifal-api.php</code> inside the same <code>rashifal/</code> folder.</li>
+        <li>This page sends only <code>sign</code> and <code>period</code>.</li>
+        <li>Supported periods here are <code>today</code>, <code>yesterday</code>, and <code>tomorrow</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const signs = [
+      ['aries','♈','Aries'],
+      ['taurus','♉','Taurus'],
+      ['gemini','♊','Gemini'],
+      ['cancer','♋','Cancer'],
+      ['leo','♌','Leo'],
+      ['virgo','♍','Virgo'],
+      ['libra','♎','Libra'],
+      ['scorpio','♏','Scorpio'],
+      ['sagittarius','♐','Sagittarius'],
+      ['capricorn','♑','Capricorn'],
+      ['aquarius','♒','Aquarius'],
+      ['pisces','♓','Pisces']
+    ];
+
+    let selectedPeriod = 'today';
+    let selectedSign = 'aries';
+
+    const grid = document.getElementById('signGrid');
+    const result = document.getElementById('resultBox');
+    const status = document.getElementById('statusText');
+
+    signs.forEach(([key, emoji, label], i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sign' + (i === 0 ? ' active' : '');
+      btn.innerHTML = `<div class="emoji">${emoji}</div><div class="name">${label}</div>`;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sign').forEach(x => x.classList.remove('active'));
+        btn.classList.add('active');
+        selectedSign = key;
+      });
+      grid.appendChild(btn);
+    });
+
+    document.querySelectorAll('#types .tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#types .tab').forEach(x => x.classList.remove('active'));
+        btn.classList.add('active');
+        selectedPeriod = btn.dataset.period;
+      });
+    });
+
+    document.getElementById('fetchBtn').addEventListener('click', async () => {
+      status.textContent = 'Fetching...';
+      result.textContent = 'Loading...';
+
+      const fd = new FormData();
+      fd.append('sign', selectedSign);
+      fd.append('period', selectedPeriod);
+
+      try {
+        const res = await fetch('rashifal-api.php', {
+          method: 'POST',
+          body: fd
+        });
+
+        const text = await res.text();
+
+        try {
+          const data = JSON.parse(text);
+          result.textContent = JSON.stringify(data, null, 2);
+          status.textContent = data.success ? '✅ Success' : '❌ Check response';
+        } catch (err) {
+          result.textContent = 'RAW PHP OUTPUT:
+
+' + text;
+          status.textContent = 'Invalid JSON from PHP';
+        }
+      } catch (err) {
+        result.textContent = err.message;
+        status.textContent = 'Network error';
+      }
+    });
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+    });
+  </script>
+</body>
+</html>

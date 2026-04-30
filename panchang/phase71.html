@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panchang Engine — Phase 7: Muhurta Timings</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@300;400&family=Crimson+Pro:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:     #07080F;
+    --panel:  #0E1020;
+    --border: #1A1E35;
+    --text:   #E8ECF8;
+    --muted:  #505878;
+    --green:  #52C87A;
+    --red:    #E05858;
+    --gold:   #E8B840;
+    --rahu:   #8B2FC9;
+    --good:   #2E9E5A;
+    --bad:    #9E2E2E;
+    --neutral:#2E5A8E;
+    --dawn:   #FF8C42;
+    --hora:   #4A9EDD;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'Crimson Pro',serif; min-height:100vh;
+  }
+
+  header {
+    text-align:center; padding:34px 20px 20px;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,rgba(139,47,201,0.05) 0%,transparent 100%);
+  }
+
+  .phase-badge {
+    display:inline-block; font-family:'JetBrains Mono',monospace;
+    font-size:10px; letter-spacing:3px; color:var(--rahu);
+    background:rgba(139,47,201,0.08); border:1px solid rgba(139,47,201,0.25);
+    padding:4px 14px; border-radius:2px; margin-bottom:10px;
+  }
+
+  .icon { font-size:34px; display:block; margin-bottom:6px; }
+
+  h1 {
+    font-family:'Cinzel',serif; font-size:clamp(17px,2.8vw,28px);
+    font-weight:700; color:var(--text); letter-spacing:2px;
+  }
+
+  h1 span { color:var(--muted); font-weight:400; font-size:0.65em; }
+
+  .subtitle { margin-top:6px; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+  .pipeline {
+    display:flex; justify-content:center; align-items:center;
+    flex-wrap:wrap; margin-top:12px;
+  }
+
+  .pipe-step {
+    font-family:'JetBrains Mono',monospace; font-size:9px;
+    letter-spacing:1px; padding:3px 7px; border-radius:2px; white-space:nowrap;
+  }
+
+  .pipe-step.done   { color:var(--green); background:rgba(82,200,122,0.08); border:1px solid rgba(82,200,122,0.2); }
+  .pipe-step.active { color:var(--rahu);  background:rgba(139,47,201,0.1);  border:1px solid rgba(139,47,201,0.3); }
+  .pipe-step.todo   { color:var(--muted); border:1px solid var(--border); }
+  .pipe-arrow { color:var(--border); padding:0 3px; font-size:11px; }
+
+  .container {
+    max-width:1060px; margin:0 auto; padding:22px 16px;
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+  }
+
+  @media(max-width:680px){ .container{ grid-template-columns:1fr; } }
+
+  .card {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:3px; padding:20px; position:relative; overflow:hidden;
+  }
+
+  .card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,var(--rahu),transparent);
+  }
+
+  .card.full { grid-column:1/-1; }
+  .card.gold-top::before { background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+  .card.hora-top::before { background:linear-gradient(90deg,transparent,var(--hora),transparent); }
+
+  .card-title {
+    font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px;
+    color:var(--gold); text-transform:uppercase; margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  .card-title::after { content:''; flex:1; height:1px; background:var(--border); }
+  .card-title.rahu { color:var(--rahu); }
+  .card-title.hora { color:var(--hora); }
+
+  label {
+    display:block; font-family:'JetBrains Mono',monospace;
+    font-size:9px; letter-spacing:1.5px; color:var(--muted);
+    text-transform:uppercase; margin-bottom:4px; margin-top:10px;
+  }
+
+  label:first-of-type { margin-top:0; }
+
+  input, select {
+    width:100%; background:rgba(0,0,0,0.35); border:1px solid var(--border);
+    border-radius:2px; color:var(--text); font-family:'JetBrains Mono',monospace;
+    font-size:12px; padding:7px 11px; outline:none; transition:border-color 0.2s;
+  }
+
+  input:focus, select:focus { border-color:var(--gold); }
+  select option { background:var(--panel); }
+
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+
+  button {
+    width:100%; margin-top:14px; padding:11px;
+    background:linear-gradient(135deg,#4A1A7A,#8B2FC9);
+    border:none; border-radius:2px; color:var(--text);
+    font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px;
+    cursor:pointer; transition:opacity 0.2s,transform 0.1s; text-transform:uppercase;
+  }
+
+  button:hover { opacity:0.88; transform:translateY(-1px); }
+
+  .loc-presets { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+  .loc-btn { width:auto; margin-top:0; padding:4px 10px; font-size:9px; flex:none; }
+
+  /* Rahu Kalam display */
+  .rahu-box {
+    background:rgba(139,47,201,0.1); border:1px solid rgba(139,47,201,0.35);
+    border-radius:3px; padding:18px; text-align:center; margin-bottom:14px;
+  }
+
+  .rahu-label {
+    font-family:'JetBrains Mono',monospace; font-size:9px;
+    letter-spacing:2px; color:var(--rahu); text-transform:uppercase; margin-bottom:6px;
+  }
+
+  .rahu-time {
+    font-family:'JetBrains Mono',monospace; font-size:26px; color:var(--rahu);
+  }
+
+  .rahu-note { font-size:12px; color:var(--muted); margin-top:4px; font-style:italic; }
+
+  /* Choghadiya grid */
+  .chog-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:5px;
+  }
+
+  .chog-cell {
+    border-radius:2px; padding:8px 10px;
+    border:1px solid var(--border);
+    position:relative; transition:all 0.2s;
+  }
+
+  .chog-cell.good    { border-color:rgba(46,158,90,0.4);  background:rgba(46,158,90,0.06); }
+  .chog-cell.bad     { border-color:rgba(158,46,46,0.4);  background:rgba(158,46,46,0.06); }
+  .chog-cell.neutral { border-color:rgba(46,90,142,0.4);  background:rgba(46,90,142,0.06); }
+  .chog-cell.current { box-shadow:0 0 0 2px var(--gold); }
+
+  .chog-name {
+    font-family:'Cinzel',serif; font-size:12px; font-weight:600;
+    margin-bottom:2px;
+  }
+
+  .chog-cell.good    .chog-name { color:#5DC87A; }
+  .chog-cell.bad     .chog-name { color:#E05858; }
+  .chog-cell.neutral .chog-name { color:#6AACCF; }
+
+  .chog-gu {
+    font-size:13px; color:var(--gold); display:block; margin-bottom:2px;
+  }
+
+  .chog-time {
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted);
+  }
+
+  .chog-nature {
+    font-family:'JetBrains Mono',monospace; font-size:8px;
+    letter-spacing:1px; text-transform:uppercase;
+    position:absolute; top:6px; right:8px;
+  }
+
+  .chog-cell.good    .chog-nature { color:rgba(46,158,90,0.7); }
+  .chog-cell.bad     .chog-nature { color:rgba(158,46,46,0.7); }
+  .chog-cell.neutral .chog-nature { color:rgba(46,90,142,0.7); }
+
+  .current-badge {
+    font-family:'JetBrains Mono',monospace; font-size:8px;
+    color:var(--gold); letter-spacing:1px; margin-left:4px;
+  }
+
+  /* Hora grid */
+  .hora-grid {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:5px;
+  }
+
+  .hora-cell {
+    border-radius:2px; padding:7px 8px; border:1px solid var(--border);
+    text-align:center; transition:all 0.2s;
+  }
+
+  .hora-cell.current-hora {
+    border-color:var(--hora); background:rgba(74,158,221,0.08);
+    box-shadow:0 0 0 1px rgba(74,158,221,0.3);
+  }
+
+  .hora-planet { font-size:16px; display:block; margin-bottom:2px; }
+
+  .hora-name {
+    font-family:'JetBrains Mono',monospace; font-size:9px;
+    color:var(--muted); letter-spacing:1px; display:block;
+  }
+
+  .hora-cell.current-hora .hora-name { color:var(--hora); }
+
+  .hora-time {
+    font-family:'JetBrains Mono',monospace; font-size:9px;
+    color:var(--border); display:block; margin-top:2px;
+  }
+
+  .hora-cell.current-hora .hora-time { color:var(--gold); }
+
+  /* Verify */
+  .verify-table { width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace; font-size:11px; }
+  .verify-table th { text-align:left; color:var(--muted); font-size:8px; letter-spacing:2px; text-transform:uppercase; padding:6px 10px; border-bottom:1px solid var(--border); }
+  .verify-table td { padding:8px 10px; border-bottom:1px solid rgba(26,30,53,0.6); }
+  .verify-table tr:last-child td { border-bottom:none; }
+  .match { color:var(--green); }
+  .diff  { color:var(--red); }
+
+  .status-bar { margin-top:12px; padding:10px 14px; border-radius:2px; font-family:'JetBrains Mono',monospace; font-size:11px; display:none; }
+  .status-bar.ok   { background:rgba(82,200,122,0.07); border:1px solid rgba(82,200,122,0.25); color:var(--green); display:block; }
+  .status-bar.warn { background:rgba(224,88,88,0.07);  border:1px solid rgba(224,88,88,0.25);  color:var(--red);   display:block; }
+
+  /* Code */
+  .code-block { background:rgba(0,0,0,0.4); border:1px solid var(--border); border-radius:2px; padding:16px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.7; color:#c0c8e0; overflow-x:auto; white-space:pre; max-height:480px; overflow-y:auto; }
+  .copy-btn { width:auto; margin-top:10px; padding:7px 16px; font-size:10px; }
+
+  .ref-btn { display:block; width:100%; margin-bottom:6px; padding:7px 10px; font-size:10px; letter-spacing:1px; text-align:left; }
+
+  .section-label {
+    font-family:'JetBrains Mono',monospace; font-size:9px;
+    letter-spacing:2px; color:var(--muted); text-transform:uppercase;
+    margin-bottom:8px; margin-top:14px;
+  }
+
+  .section-label:first-of-type { margin-top:0; }
+
+  .hidden { display:none; }
+
+  .day-night-tabs {
+    display:flex; gap:8px; margin-bottom:10px;
+  }
+
+  .tab-btn {
+    flex:1; padding:7px; font-size:10px; letter-spacing:1px;
+    background:rgba(0,0,0,0.2); border:1px solid var(--border);
+    color:var(--muted); cursor:pointer; border-radius:2px; margin-top:0;
+  }
+
+  .tab-btn.active { background:rgba(232,184,64,0.1); border-color:rgba(232,184,64,0.4); color:var(--gold); }
+
+  .weekday-box {
+    background:rgba(232,184,64,0.06); border:1px solid rgba(232,184,64,0.2);
+    border-radius:2px; padding:10px 16px; margin-bottom:14px;
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="icon">🔮</span>
+  <div class="phase-badge">PHASE 7 OF 8 — MUHURTA TIMINGS</div>
+  <h1>Gujarati Panchang Engine <span>/ Rahu Kalam · Choghadiya · Hora</span></h1>
+  <p class="subtitle">Weekday-based · Sunrise-anchored · Panchang-grade accuracy</p>
+
+  <div class="pipeline">
+    <span class="pipe-step done">✔ JD+ΔT</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Sun</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Moon</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Ayanamsa</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Angas</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step done">✔ Sunrise</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step active">🔮 Muhurta</span><span class="pipe-arrow">→</span>
+    <span class="pipe-step todo">Full Panchang</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Input -->
+  <div class="card">
+    <div class="card-title">Input — Date & Location</div>
+
+    <div class="row3">
+      <div><label>Year</label><input type="number" id="year" value="2026" min="1900" max="2100"></div>
+      <div><label>Month</label><input type="number" id="month" value="4" min="1" max="12"></div>
+      <div><label>Day</label><input type="number" id="day" value="22" min="1" max="31"></div>
+    </div>
+
+    <div class="row2">
+      <div><label>Latitude</label><input type="number" id="lat" value="23.0225" step="0.0001"></div>
+      <div><label>Longitude</label><input type="number" id="lon" value="72.5714" step="0.0001"></div>
+    </div>
+
+    <label>Timezone Offset (IST = +5.5)</label>
+    <input type="number" id="tz" value="5.5" step="0.25">
+
+    <label>Elevation (metres)</label>
+    <input type="number" id="elev" value="53" min="0">
+
+    <div class="loc-presets">
+      <button class="loc-btn" onclick="setLoc(23.0225,72.5714,53,'Ahmedabad')">Ahmedabad</button>
+      <button class="loc-btn" onclick="setLoc(21.1702,72.8311,13,'Surat')">Surat</button>
+      <button class="loc-btn" onclick="setLoc(22.3072,73.1812,39,'Vadodara')">Vadodara</button>
+      <button class="loc-btn" onclick="setLoc(22.2587,71.1924,24,'Bhavnagar')">Bhavnagar</button>
+      <button class="loc-btn" onclick="setLoc(19.0760,72.8777,14,'Mumbai')">Mumbai</button>
+      <button class="loc-btn" onclick="setLoc(28.6139,77.2090,216,'Delhi')">Delhi</button>
+    </div>
+
+    <button onclick="calculate()">🔮 Compute Muhurta Timings</button>
+  </div>
+
+  <!-- Reference + info -->
+  <div class="card">
+    <div class="card-title rahu">Reference Tests</div>
+    <div id="refList"></div>
+
+    <div style="background:rgba(139,47,201,0.06);border:1px solid rgba(139,47,201,0.2);border-radius:2px;padding:12px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--rahu);line-height:1.8">
+      <strong>Algorithms:</strong><br>
+      • Rahu Kalam = day÷8, weekday segment<br>
+      • Choghadiya = day÷8 + night÷8 periods<br>
+      • Hora = 24 planetary hours from sunrise<br>
+      • All anchored to computed sunrise/sunset<br>
+      <strong>Weekday lord order:</strong> Sun Mon Tue Wed Thu Fri Sat
+    </div>
+  </div>
+
+  <!-- Rahu Kalam + weekday -->
+  <div class="card hidden" id="rahuCard">
+    <div class="card-title rahu">☿ Rahu Kalam</div>
+    <div class="weekday-box" id="weekdayBox"></div>
+    <div class="rahu-box">
+      <div class="rahu-label">⚠ Inauspicious Period — Avoid Important Work</div>
+      <div class="rahu-time" id="rahuTime">—</div>
+      <div class="rahu-note" id="rahuNote">—</div>
+    </div>
+
+    <div class="section-label">Also Inauspicious</div>
+    <div class="result-grid" id="otherInauspicious" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+  </div>
+
+  <!-- Sunrise/Sunset summary -->
+  <div class="card hidden" id="sunCard">
+    <div class="card-title gold-top">☀ Sun Times (Phase 6 Output)</div>
+    <div id="sunSummary"></div>
+  </div>
+
+  <!-- Choghadiya Day -->
+  <div class="card full hidden" id="chogCard">
+    <div class="card-title">☸ Choghadiya — Day & Night Periods</div>
+
+    <div class="day-night-tabs">
+      <button class="tab-btn active" id="tabDay" onclick="showTab('day')">☀ Day Choghadiya (8 periods)</button>
+      <button class="tab-btn" id="tabNight" onclick="showTab('night')">🌙 Night Choghadiya (8 periods)</button>
+    </div>
+
+    <div id="chogDay" class="chog-grid"></div>
+    <div id="chogNight" class="chog-grid hidden"></div>
+  </div>
+
+  <!-- Hora -->
+  <div class="card full hidden hora-top" id="horaCard">
+    <div class="card-title hora">⏱ Planetary Hora — 24 Hours from Sunrise</div>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px">Each hora = 1 hour. Ruling planet cycles: Sun→Venus→Mercury→Moon→Saturn→Jupiter→Mars→repeat</p>
+    <div class="hora-grid" id="horaGrid"></div>
+  </div>
+
+  <!-- Verification -->
+  <div class="card full hidden" id="verifyCard">
+    <div class="card-title">Precision Verification</div>
+    <table class="verify-table">
+      <thead>
+        <tr><th>Parameter</th><th>Computed</th><th>Expected (Drik Panchang)</th><th>Δ</th><th>Status</th></tr>
+      </thead>
+      <tbody id="verifyBody"></tbody>
+    </table>
+    <div id="statusBar" class="status-bar"></div>
+  </div>
+
+  <!-- PHP Code -->
+  <div class="card full">
+    <div class="card-title">Production PHP Code — Muhurta.php</div>
+    <div class="code-block" id="phpCode"></div>
+    <button class="copy-btn" onclick="copyCode()">⎘ Copy PHP Code</button>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// PHASE 1-6 DEPENDENCIES (Compact Sunrise Engine)
+// ============================================================
+const D2R=Math.PI/180,R2D=180/Math.PI;
+function norm360(x){return((x%360)+360)%360;}
+function sinD(x){return Math.sin(x*D2R);}
+function cosD(x){return Math.cos(x*D2R);}
+function asinD(x){return Math.asin(x)*R2D;}
+function acosD(x){return Math.acos(x)*R2D;}
+function atan2D(y,x){return Math.atan2(y,x)*R2D;}
+
+function julianDay(y,mo,d,h,mi,s,tz){
+  const D=d+(h-tz)/24+mi/1440+s/86400;
+  let Y=y,M=mo;if(M<=2){Y--;M+=12;}
+  const A=Math.floor(Y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+D+B-1524.5;
+}
+
+function deltaT(year,month){
+  const y=year+(month-0.5)/12;
+  if(year<2050){const t=y-2000;return 62.92+0.32217*t+0.005589*t*t;}
+  return 69;
+}
+
+function sunRADec(JDE){
+  const T=(JDE-2451545)/36525,T2=T*T;
+  const L0=norm360(280.46646+36000.76983*T+0.0003032*T2);
+  const M=norm360(357.52911+35999.05029*T-0.0001537*T2);
+  const C=(1.914602-0.004817*T-0.000014*T2)*sinD(M)+(0.019993-0.000101*T)*sinD(2*M)+0.000289*sinD(3*M);
+  const omega=norm360(125.04-1934.136*T);
+  const app=norm360(L0+C-0.00569-0.00478*sinD(omega));
+  const eps=23+26/60+21.448/3600-(46.815/3600)*T+0.00256*cosD(omega);
+  return {RA:norm360(atan2D(cosD(eps)*sinD(app),cosD(app))),Dec:asinD(sinD(eps)*sinD(app))};
+}
+
+function GAST(JD){
+  const T=(JD-2451545)/36525;
+  return norm360(280.46061837+360.98564736629*(JD-2451545)+0.000387933*T*T);
+}
+
+function getSunTimes(year,month,day,lat,lon,tz,elev){
+  const JD0=julianDay(year,month,day,0,0,0,0);
+  const DT=deltaT(year,month);
+  const {RA,Dec}=sunRADec(JD0+DT/86400);
+  const Θ0=GAST(JD0);
+  const h0=-0.8333-0.0353*Math.sqrt(elev||0);
+  const cosH=(sinD(h0)-sinD(lat)*sinD(Dec))/(cosD(lat)*cosD(Dec));
+  if(cosH<-1||cosH>1) return null;
+  const H0=acosD(cosH);
+  let m0=(((RA-lon-Θ0)/360.985647)%1+1)%1;
+  let m1=((m0-H0/360)%1+1)%1;
+  let m2=((m0+H0/360)%1+1)%1;
+  function refine(m,tr){
+    for(let i=0;i<3;i++){
+      const θ=norm360(Θ0+360.985647*m);
+      const sp=sunRADec(JD0+m+DT/86400);
+      let H=norm360(θ+lon-sp.RA);if(H>180)H-=360;
+      const h=asinD(sinD(lat)*sinD(sp.Dec)+cosD(lat)*cosD(sp.Dec)*cosD(H));
+      if(tr)m+=-H/360; else m+=(h-h0)/(360*cosD(sp.Dec)*cosD(lat)*sinD(H));
+    }
+    return m;
+  }
+  m1=refine(m1,false);m0=refine(m0,true);m2=refine(m2,false);
+  // Return as decimal hours (local)
+  const toLocal=m=>((m*24+tz)%24+24)%24;
+  return { riseH:toLocal(m1), setH:toLocal(m2), noonH:toLocal(m0) };
+}
+
+// Next day sunrise for night duration
+function getNextSunrise(year,month,day,lat,lon,tz,elev){
+  let d=day+1,m=month,y=year;
+  const daysInMonth=[0,31,28,31,30,31,30,31,31,30,31,30,31];
+  if((y%4===0&&y%100!==0)||y%400===0) daysInMonth[2]=29;
+  if(d>daysInMonth[m]){d=1;m++;if(m>12){m=1;y++;}}
+  const r=getSunTimes(y,m,d,lat,lon,tz,elev);
+  return r?r.riseH+24:null; // +24 to represent next day
+}
+
+// ============================================================
+// PHASE 7: MUHURTA ENGINE
+// ============================================================
+
+// ─ Weekday calculation ─
+// 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+function getWeekday(year,month,day){
+  const JD=julianDay(year,month,day,12,0,0,0);
+  return Math.floor(JD+1.5) % 7;
+}
+
+const WEEKDAYS=[
+  {en:'Sunday',    gu:'રવિવાર', lord:'Sun ☀'},
+  {en:'Monday',    gu:'સોમવાર', lord:'Moon 🌙'},
+  {en:'Tuesday',   gu:'મંગળવાર',lord:'Mars ♂'},
+  {en:'Wednesday', gu:'બુધવાર', lord:'Mercury ☿'},
+  {en:'Thursday',  gu:'ગુરુવાર', lord:'Jupiter ♃'},
+  {en:'Friday',    gu:'શુક્રવાર',lord:'Venus ♀'},
+  {en:'Saturday',  gu:'શનિવાર', lord:'Saturn ♄'},
+];
+
+// ─ Rahu Kalam ─
+// Day divided into 8 parts; Rahu Kalam = one specific part per weekday
+// Index of the inauspicious part (1-based, 1=first part of day)
+// Sun=8, Mon=2, Tue=7, Wed=5, Thu=6, Fri=4, Sat=3
+const RAHU_SEGMENT=[8,2,7,5,6,4,3]; // index by weekday (0=Sun)
+
+// ─ Yamaganda & Gulika ─
+// Yamaganda: Sun=5,Mon=4,Tue=3,Wed=2,Thu=1,Fri=7,Sat=6
+// Gulika:    Sun=7,Mon=6,Tue=5,Wed=4,Thu=3,Fri=2,Sat=1
+const YAMA_SEGMENT  =[5,4,3,2,1,7,6];
+const GULIKA_SEGMENT=[7,6,5,4,3,2,1];
+
+// ─ Choghadiya data ─
+// 8 names cycling, nature: G=good, B=bad, N=neutral
+// Day order starts from weekday lord
+// Night order starts from 5th from day start
+const CHOG_NAMES=[
+  {en:'Udveg',   gu:'ઉદ્વેગ',  nature:'bad',     planet:'Sun'},
+  {en:'Char',    gu:'ચર',      nature:'neutral',  planet:'Moon'},
+  {en:'Labh',    gu:'લાભ',     nature:'good',     planet:'Mars'},  // actually Jupiter
+  {en:'Amrit',   gu:'અમૃત',   nature:'good',     planet:'Mercury'},
+  {en:'Kaal',    gu:'કાળ',     nature:'bad',      planet:'Saturn'},
+  {en:'Shubh',   gu:'શુભ',     nature:'good',     planet:'Jupiter'},
+  {en:'Rog',     gu:'રોગ',     nature:'bad',      planet:'Mars'},
+  {en:'Udveg',   gu:'ઉદ્વેગ',  nature:'bad',      planet:'Sun'},
+];
+
+// Day Choghadiya starting index per weekday (0=Sun)
+// Sun=0(Udveg), Mon=1(Char), Tue=2(Labh), Wed=3(Amrit), Thu=4(Kaal), Fri=5(Shubh), Sat=6(Rog)
+const DAY_CHOG_START  =[0,1,2,3,4,5,6];
+// Night Choghadiya starting index per weekday
+const NIGHT_CHOG_START=[4,0,1,2,3,4,5]; // Sun night starts at Kaal(4), etc.
+
+// Full Choghadiya sequence (8 slots cycling through all names)
+// The sequence order is fixed: Udveg→Char→Labh→Amrit→Kaal→Shubh→Rog→Udveg
+// Starting index shifts by weekday
+function getChoghadiya(startIdx, startH, durH){
+  const slotDur = durH / 8;
+  const slots=[];
+  for(let i=0;i<8;i++){
+    const idx=(startIdx+i)%7;
+    // Choghadiya sequence: fixed 7-planet cycle
+    // Order: 0=Udveg,2=Char,4=Labh,6=Amrit,1=Kaal,3=Shubh,5=Rog (Meeus-style)
+    // Traditional order:
+    const seq=[0,2,4,6,1,3,5]; // maps slot to chog name
+    const chogIdx=seq[i%7];
+    const sH=startH+i*slotDur;
+    const eH=startH+(i+1)*slotDur;
+    slots.push({
+      ...CHOG_NAMES[chogIdx],
+      startH:sH, endH:eH, slotNum:i+1
+    });
+  }
+  return slots;
+}
+
+// Traditional Choghadiya sequence per weekday (day)
+// Each weekday has fixed sequence of 8 choghadiyas
+const CHOG_DAY_SEQ = {
+  0: ['Udveg','Char','Labh','Amrit','Kaal','Shubh','Rog','Udveg'],    // Sun
+  1: ['Amrit','Kaal','Shubh','Rog','Udveg','Char','Labh','Amrit'],    // Mon
+  2: ['Rog','Udveg','Char','Labh','Amrit','Kaal','Shubh','Rog'],      // Tue
+  3: ['Labh','Amrit','Kaal','Shubh','Rog','Udveg','Char','Labh'],     // Wed
+  4: ['Shubh','Rog','Udveg','Char','Labh','Amrit','Kaal','Shubh'],    // Thu
+  5: ['Char','Labh','Amrit','Kaal','Shubh','Rog','Udveg','Char'],     // Fri
+  6: ['Kaal','Shubh','Rog','Udveg','Char','Labh','Amrit','Kaal'],     // Sat
+};
+
+const CHOG_NIGHT_SEQ = {
+  0: ['Shubh','Amrit','Char','Rog','Kaal','Labh','Udveg','Shubh'],   // Sun
+  1: ['Char','Rog','Kaal','Labh','Udveg','Shubh','Amrit','Char'],    // Mon
+  2: ['Kaal','Labh','Udveg','Shubh','Amrit','Char','Rog','Kaal'],    // Tue
+  3: ['Udveg','Shubh','Amrit','Char','Rog','Kaal','Labh','Udveg'],   // Wed
+  4: ['Amrit','Char','Rog','Kaal','Labh','Udveg','Shubh','Amrit'],   // Thu
+  5: ['Rog','Kaal','Labh','Udveg','Shubh','Amrit','Char','Rog'],     // Fri
+  6: ['Labh','Udveg','Shubh','Amrit','Char','Rog','Kaal','Labh'],    // Sat
+};
+
+const CHOG_INFO = {
+  'Amrit': {gu:'અમૃત', nature:'good',    symbol:'🟢'},
+  'Shubh': {gu:'શુભ',  nature:'good',    symbol:'🟢'},
+  'Labh':  {gu:'લાભ',  nature:'good',    symbol:'🟢'},
+  'Char':  {gu:'ચર',   nature:'neutral', symbol:'🔵'},
+  'Udveg': {gu:'ઉદ્વેગ',nature:'bad',    symbol:'🔴'},
+  'Kaal':  {gu:'કાળ',  nature:'bad',     symbol:'🔴'},
+  'Rog':   {gu:'રોગ',  nature:'bad',     symbol:'🔴'},
+};
+
+function buildChoghadiya(weekday, startH, endH, isDay){
+  const seq = isDay ? CHOG_DAY_SEQ[weekday] : CHOG_NIGHT_SEQ[weekday];
+  const slotDur=(endH-startH)/8;
+  return seq.map((name,i)=>{
+    const info=CHOG_INFO[name];
+    return {
+      name, ...info,
+      startH: startH + i*slotDur,
+      endH:   startH + (i+1)*slotDur,
+    };
+  });
+}
+
+// ─ Hora ─
+// 24 hours from sunrise, each ruled by a planet
+// Planet order: Sun,Venus,Mercury,Moon,Saturn,Jupiter,Mars (Chaldean order)
+const HORA_PLANETS=[
+  {name:'Sun',     gu:'સૂર્ય', sym:'☀', color:'#FFB830'},
+  {name:'Venus',   gu:'શુક્ર', sym:'♀', color:'#FF69B4'},
+  {name:'Mercury', gu:'બુધ',   sym:'☿', color:'#90EE90'},
+  {name:'Moon',    gu:'ચંદ્ર', sym:'🌙', color:'#B8D4F0'},
+  {name:'Saturn',  gu:'શનિ',   sym:'♄', color:'#A080C0'},
+  {name:'Jupiter', gu:'ગુરુ',  sym:'♃', color:'#FFA040'},
+  {name:'Mars',    gu:'મંગળ',  sym:'♂', color:'#FF6060'},
+];
+
+// First hora of day is ruled by weekday lord
+// Sun=0,Mon=3,Tue=6,Wed=2,Thu=5,Fri=1,Sat=4 (index into HORA_PLANETS)
+const HORA_DAY_LORD=[0,3,6,2,5,1,4];
+
+function buildHora(weekday, riseH){
+  const startIdx=HORA_DAY_LORD[weekday];
+  const horas=[];
+  for(let i=0;i<24;i++){
+    const pIdx=(startIdx+i)%7;
+    const sH=riseH+i;
+    const eH=riseH+i+1;
+    horas.push({
+      ...HORA_PLANETS[pIdx],
+      hour:i+1, startH:sH, endH:eH
+    });
+  }
+  return horas;
+}
+
+// ─ Format helpers ─
+function fmtH(h){
+  h=((h%24)+24)%24;
+  const hh=Math.floor(h);
+  const mm=Math.round((h-hh)*60)%60;
+  return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+}
+
+function decHtoHM(h){
+  const hh=Math.floor(h);
+  const mm=Math.round((h-hh)*60);
+  return `${hh}h ${String(mm).padStart(2,'0')}m`;
+}
+
+// ─ References ─
+const REFERENCES=[
+  {
+    // Drik Panchang 2026-Apr-22, Ahmedabad
+    // Weekday: Wednesday (Budhvar)
+    // Rahu Kalam: 12:12 – 13:44 IST (approx, based on segment 5 of day)
+    label:'Ahmedabad 2026-Apr-22 (Wednesday)',
+    year:2026,month:4,day:22,lat:23.0225,lon:72.5714,tz:5.5,elev:53,
+    expectedWeekday:3,          // 3=Wednesday
+    expectedRahuStart:'12:',    // starts around 12:xx
+    toleranceMin:10
+  },
+];
+
+function buildRefList(){
+  const el=document.getElementById('refList');
+  REFERENCES.forEach(r=>{
+    const btn=document.createElement('button');
+    btn.className='ref-btn';
+    btn.textContent=r.label;
+    btn.onclick=()=>loadRef(r);
+    el.appendChild(btn);
+  });
+}
+
+function loadRef(r){
+  document.getElementById('year').value =r.year;
+  document.getElementById('month').value=r.month;
+  document.getElementById('day').value  =r.day;
+  document.getElementById('lat').value  =r.lat;
+  document.getElementById('lon').value  =r.lon;
+  document.getElementById('tz').value   =r.tz;
+  document.getElementById('elev').value =r.elev||0;
+  calculate(r);
+}
+
+function setLoc(lat,lon,elev,name){
+  document.getElementById('lat').value =lat;
+  document.getElementById('lon').value =lon;
+  document.getElementById('elev').value=elev;
+  calculate(null);
+}
+
+let currentChogTab='day';
+
+function showTab(tab){
+  currentChogTab=tab;
+  document.getElementById('chogDay').classList.toggle('hidden',tab!=='day');
+  document.getElementById('chogNight').classList.toggle('hidden',tab!=='night');
+  document.getElementById('tabDay').classList.toggle('active',tab==='day');
+  document.getElementById('tabNight').classList.toggle('active',tab!=='day');
+}
+
+// ─ MAIN CALCULATE ─
+function calculate(refData){
+  try{
+    const year  =parseInt(document.getElementById('year').value)||2026;
+    const month =parseInt(document.getElementById('month').value)||4;
+    const day   =parseInt(document.getElementById('day').value)||22;
+    const lat   =parseFloat(document.getElementById('lat').value)||23.0225;
+    const lon   =parseFloat(document.getElementById('lon').value)||72.5714;
+    const tz    =parseFloat(document.getElementById('tz').value)||5.5;
+    const elev  =parseFloat(document.getElementById('elev').value)||0;
+
+    // Get sunrise/sunset
+    const sun=getSunTimes(year,month,day,lat,lon,tz,elev);
+    if(!sun){alert('Sun does not rise/set at this location on this date');return;}
+
+    const nextRise=getNextSunrise(year,month,day,lat,lon,tz,elev);
+    const riseH=sun.riseH;
+    const setH =sun.setH;
+    const nextRiseH=nextRise||riseH+24;
+    const dayDur=setH-riseH;
+    const nightDur=nextRiseH-setH;
+    const segDur=dayDur/8;
+
+    // Weekday
+    const wd=getWeekday(year,month,day);
+    const wdInfo=WEEKDAYS[wd];
+
+    // ── Rahu Kalam ──
+    const rahuSeg=RAHU_SEGMENT[wd]; // 1-based segment
+    const rahuStart=riseH+(rahuSeg-1)*segDur;
+    const rahuEnd  =riseH+rahuSeg*segDur;
+
+    // Yamaganda & Gulika
+    const yamaSeg=YAMA_SEGMENT[wd];
+    const gulikaSeg=GULIKA_SEGMENT[wd];
+    const yamaStart=riseH+(yamaSeg-1)*segDur;
+    const yamaEnd  =riseH+yamaSeg*segDur;
+    const gulikaStart=riseH+(gulikaSeg-1)*segDur;
+    const gulikaEnd  =riseH+gulikaSeg*segDur;
+
+    // ── Choghadiya ──
+    const dayChog  =buildChoghadiya(wd,riseH,setH,true);
+    const nightChog=buildChoghadiya(wd,setH,nextRiseH,false);
+
+    // ── Hora ──
+    const horas=buildHora(wd,riseH);
+
+    // Current time (local hours)
+    const now=new Date();
+    const nowH=now.getHours()+now.getMinutes()/60+now.getSeconds()/3600;
+
+    // ── Display ──
+    document.getElementById('rahuCard').classList.remove('hidden');
+    document.getElementById('sunCard').classList.remove('hidden');
+    document.getElementById('chogCard').classList.remove('hidden');
+    document.getElementById('horaCard').classList.remove('hidden');
+
+    // Weekday box
+    document.getElementById('weekdayBox').innerHTML=
+      `<span>📅 ${wdInfo.en} — ${wdInfo.gu}</span>
+       <span style="color:var(--muted)">${wdInfo.lord}</span>`;
+
+    // Rahu Kalam
+    document.getElementById('rahuTime').textContent=`${fmtH(rahuStart)} – ${fmtH(rahuEnd)}`;
+    document.getElementById('rahuNote').textContent=
+      `Segment ${rahuSeg} of 8 · Duration: ${decHtoHM(segDur)} · Weekday: ${wdInfo.en}`;
+
+    // Other inauspicious
+    document.getElementById('otherInauspicious').innerHTML=`
+      <div style="background:rgba(158,46,46,0.06);border:1px solid rgba(158,46,46,0.3);border-radius:2px;padding:10px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">YAMAGANDA</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#E08080">${fmtH(yamaStart)} – ${fmtH(yamaEnd)}</div>
+        <div style="font-size:11px;color:var(--muted)">Segment ${yamaSeg}</div>
+      </div>
+      <div style="background:rgba(100,60,160,0.06);border:1px solid rgba(100,60,160,0.3);border-radius:2px;padding:10px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">GULIKA KALAM</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#A080D0">${fmtH(gulikaStart)} – ${fmtH(gulikaEnd)}</div>
+        <div style="font-size:11px;color:var(--muted)">Segment ${gulikaSeg}</div>
+      </div>`;
+
+    // Sun summary
+    document.getElementById('sunSummary').innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="text-align:center;padding:10px;background:rgba(255,140,66,0.06);border:1px solid rgba(255,140,66,0.2);border-radius:2px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">SUNRISE</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--dawn)">${fmtH(riseH)}</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:rgba(232,184,64,0.06);border:1px solid rgba(232,184,64,0.2);border-radius:2px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">NOON</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--gold)">${fmtH(sun.noonH)}</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:2px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">SUNSET</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#8B5CF6">${fmtH(setH)}</div>
+        </div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;text-align:center">
+        Day: ${decHtoHM(dayDur)} · Segment: ${decHtoHM(segDur)} · Night: ${decHtoHM(nightDur)}
+      </div>`;
+
+    // ── Choghadiya ──
+    function renderChog(slots, containerId){
+      const el=document.getElementById(containerId);
+      el.innerHTML='';
+      slots.forEach(c=>{
+        const isCurrent=nowH>=c.startH&&nowH<c.endH;
+        const div=document.createElement('div');
+        div.className=`chog-cell ${c.nature}${isCurrent?' current':''}`;
+        div.innerHTML=`
+          <span class="chog-nature">${c.nature.toUpperCase()}</span>
+          <div class="chog-name">${c.symbol} ${c.name}${isCurrent?'<span class="current-badge">◀ NOW</span>':''}</div>
+          <span class="chog-gu">${c.gu}</span>
+          <div class="chog-time">${fmtH(c.startH)} – ${fmtH(c.endH)}</div>`;
+        el.appendChild(div);
+      });
+    }
+    renderChog(dayChog,'chogDay');
+    renderChog(nightChog,'chogNight');
+
+    // ── Hora ──
+    const horaEl=document.getElementById('horaGrid');
+    horaEl.innerHTML='';
+    horas.slice(0,24).forEach(h=>{
+      const isCurrent=nowH>=h.startH&&nowH<h.endH;
+      const div=document.createElement('div');
+      div.className=`hora-cell${isCurrent?' current-hora':''}`;
+      div.innerHTML=`
+        <span class="hora-planet">${h.sym}</span>
+        <span class="hora-name" style="color:${isCurrent?h.color:''}">${h.name}</span>
+        <span style="font-size:9px;color:var(--muted);display:block">${h.gu}</span>
+        <span class="hora-time">${fmtH(h.startH)}</span>`;
+      horaEl.appendChild(div);
+    });
+
+    // ── Verification ──
+    if(refData&&refData.expectedWeekday!==undefined){
+      document.getElementById('verifyCard').classList.remove('hidden');
+      const tbody=document.getElementById('verifyBody');
+      tbody.innerHTML='';
+      const checks=[];
+
+      // Weekday check
+      checks.push({
+        param:'Weekday',
+        computed:`${wd} (${wdInfo.en})`,
+        expected:`${refData.expectedWeekday} (${WEEKDAYS[refData.expectedWeekday].en})`,
+        err: wd===refData.expectedWeekday?'0':'MISMATCH',
+        ok: wd===refData.expectedWeekday
+      });
+
+      // Rahu start check
+      const rahuStartStr=fmtH(rahuStart);
+      const rahuOk=rahuStartStr.startsWith(refData.expectedRahuStart);
+      checks.push({
+        param:'Rahu Kalam Start',
+        computed:rahuStartStr,
+        expected:`~${refData.expectedRahuStart}xx`,
+        err:rahuOk?'0':'differs',
+        ok:rahuOk
+      });
+
+      checks.forEach(c=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${c.param}</td>
+                      <td class="match">${c.computed}</td>
+                      <td>${c.expected}</td>
+                      <td class="${c.ok?'match':'diff'}">${c.err}</td>
+                      <td class="${c.ok?'match':'diff'}">${c.ok?'✔ PASS':'✘ CHECK'}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      tbody.innerHTML+=`<tr><td colspan="5" style="padding:10px;font-size:11px;color:var(--muted);font-style:italic;border-top:1px solid var(--border)">
+        ℹ Cross-check with Drik Panchang for same date/location/time.<br>
+        Rahu Kalam & Choghadiya are sunrise-anchored — small sunrise differences cause small time shifts.
+      </td></tr>`;
+
+      const allOk=checks.every(c=>c.ok);
+      const sb=document.getElementById('statusBar');
+      sb.className='status-bar '+(allOk?'ok':'warn');
+      sb.textContent=allOk
+        ?'✔ Weekday & Rahu Kalam correct — Phase 7 working correctly'
+        :'⚠ Check values against published panchang for this date';
+    }
+
+  }catch(e){console.error(e);alert('Error: '+e.message);}
+}
+
+// ── PHP CODE ──
+const PHP_CODE=`<?php
+// ================================================================
+// PANCHANG ENGINE — PHASE 7
+// File: panchang/Muhurta.php
+// Depends: time/Sunrise.php (Phase 6)
+// ================================================================
+
+namespace Panchang;
+
+class Muhurta
+{
+    // Weekday: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+    const RAHU_SEGMENT   = [8,2,7,5,6,4,3];
+    const YAMA_SEGMENT   = [5,4,3,2,1,7,6];
+    const GULIKA_SEGMENT = [7,6,5,4,3,2,1];
+
+    // Day Choghadiya sequences per weekday
+    const CHOG_DAY = [
+        0 => ['Udveg','Char','Labh','Amrit','Kaal','Shubh','Rog','Udveg'],
+        1 => ['Amrit','Kaal','Shubh','Rog','Udveg','Char','Labh','Amrit'],
+        2 => ['Rog','Udveg','Char','Labh','Amrit','Kaal','Shubh','Rog'],
+        3 => ['Labh','Amrit','Kaal','Shubh','Rog','Udveg','Char','Labh'],
+        4 => ['Shubh','Rog','Udveg','Char','Labh','Amrit','Kaal','Shubh'],
+        5 => ['Char','Labh','Amrit','Kaal','Shubh','Rog','Udveg','Char'],
+        6 => ['Kaal','Shubh','Rog','Udveg','Char','Labh','Amrit','Kaal'],
+    ];
+
+    // Night Choghadiya sequences per weekday
+    const CHOG_NIGHT = [
+        0 => ['Shubh','Amrit','Char','Rog','Kaal','Labh','Udveg','Shubh'],
+        1 => ['Char','Rog','Kaal','Labh','Udveg','Shubh','Amrit','Char'],
+        2 => ['Kaal','Labh','Udveg','Shubh','Amrit','Char','Rog','Kaal'],
+        3 => ['Udveg','Shubh','Amrit','Char','Rog','Kaal','Labh','Udveg'],
+        4 => ['Amrit','Char','Rog','Kaal','Labh','Udveg','Shubh','Amrit'],
+        5 => ['Rog','Kaal','Labh','Udveg','Shubh','Amrit','Char','Rog'],
+        6 => ['Labh','Udveg','Shubh','Amrit','Char','Rog','Kaal','Labh'],
+    ];
+
+    // Choghadiya nature
+    const CHOG_NATURE = [
+        'Amrit'=>'good','Shubh'=>'good','Labh'=>'good','Char'=>'neutral',
+        'Udveg'=>'bad', 'Kaal'=>'bad', 'Rog'=>'bad',
+    ];
+
+    // Gujarati names
+    const CHOG_GU = [
+        'Amrit'=>'અમૃત','Shubh'=>'શુભ','Labh'=>'લાભ','Char'=>'ચર',
+        'Udveg'=>'ઉદ્વેગ','Kaal'=>'કાળ','Rog'=>'રોગ',
+    ];
+
+    // Hora planet index by weekday (first hora lord)
+    // Chaldean order: 0=Sun,1=Venus,2=Mercury,3=Moon,4=Saturn,5=Jupiter,6=Mars
+    const HORA_DAY_LORD = [0,3,6,2,5,1,4]; // Sun=0,Mon=3,Tue=6...
+
+    const HORA_PLANETS = [
+        ['Sun','☀','સૂર્ય'],['Venus','♀','શુક્ર'],['Mercury','☿','બુધ'],
+        ['Moon','🌙','ચંદ્ર'],['Saturn','♄','શનિ'],['Jupiter','♃','ગુરુ'],
+        ['Mars','♂','મંગળ'],
+    ];
+
+    /**
+     * Compute all muhurta timings for a given date/location
+     *
+     * @param int   $year,$month,$day
+     * @param float $riseH    Sunrise in decimal hours (local) — from Sunrise::compute()
+     * @param float $setH     Sunset in decimal hours (local)
+     * @param float $nextRiseH Next day sunrise (local, +24 if needed)
+     * @param int   $weekday  0=Sun ... 6=Sat
+     * @return array
+     */
+    public static function compute(
+        float $riseH, float $setH, float $nextRiseH, int $weekday
+    ): array {
+        $dayDur   = $setH - $riseH;
+        $nightDur = $nextRiseH - $setH;
+        $segDay   = $dayDur / 8.0;
+        $segNight = $nightDur / 8.0;
+
+        // ── Rahu Kalam ──
+        $rahuSeg   = self::RAHU_SEGMENT[$weekday];
+        $rahuStart = $riseH + ($rahuSeg-1) * $segDay;
+        $rahuEnd   = $rahuStart + $segDay;
+
+        // ── Yamaganda & Gulika ──
+        $yamaSeg    = self::YAMA_SEGMENT[$weekday];
+        $yamaStart  = $riseH + ($yamaSeg-1) * $segDay;
+        $yamaEnd    = $yamaStart + $segDay;
+
+        $gulikaSeg   = self::GULIKA_SEGMENT[$weekday];
+        $gulikaStart = $riseH + ($gulikaSeg-1) * $segDay;
+        $gulikaEnd   = $gulikaStart + $segDay;
+
+        // ── Day Choghadiya ──
+        $dayChog = [];
+        foreach (self::CHOG_DAY[$weekday] as $i => $name) {
+            $dayChog[] = [
+                'name'    => $name,
+                'gu'      => self::CHOG_GU[$name],
+                'nature'  => self::CHOG_NATURE[$name],
+                'startH'  => $riseH + $i * $segDay,
+                'endH'    => $riseH + ($i+1) * $segDay,
+            ];
+        }
+
+        // ── Night Choghadiya ──
+        $nightChog = [];
+        foreach (self::CHOG_NIGHT[$weekday] as $i => $name) {
+            $nightChog[] = [
+                'name'   => $name,
+                'gu'     => self::CHOG_GU[$name],
+                'nature' => self::CHOG_NATURE[$name],
+                'startH' => $setH + $i * $segNight,
+                'endH'   => $setH + ($i+1) * $segNight,
+            ];
+        }
+
+        // ── Hora ──
+        $startIdx = self::HORA_DAY_LORD[$weekday];
+        $horas = [];
+        for ($i=0; $i<24; $i++) {
+            $pIdx = ($startIdx + $i) % 7;
+            $horas[] = [
+                'planet'  => self::HORA_PLANETS[$pIdx][0],
+                'symbol'  => self::HORA_PLANETS[$pIdx][1],
+                'gu'      => self::HORA_PLANETS[$pIdx][2],
+                'hour'    => $i+1,
+                'startH'  => $riseH + $i,
+                'endH'    => $riseH + $i + 1,
+            ];
+        }
+
+        return [
+            'rahu'   => ['start'=>$rahuStart,'end'=>$rahuEnd,'segment'=>$rahuSeg],
+            'yama'   => ['start'=>$yamaStart,'end'=>$yamaEnd,'segment'=>$yamaSeg],
+            'gulika' => ['start'=>$gulikaStart,'end'=>$gulikaEnd,'segment'=>$gulikaSeg],
+            'chog_day'   => $dayChog,
+            'chog_night' => $nightChog,
+            'hora'       => $horas,
+            'day_dur'    => $dayDur,
+            'night_dur'  => $nightDur,
+        ];
+    }
+
+    // Convert decimal hours to HH:MM string
+    public static function fmtHM(float $h): string
+    {
+        $h   = fmod(($h % 24 + 24), 24);
+        $hh  = (int)$h;
+        $mm  = (int)round(($h - $hh) * 60) % 60;
+        return sprintf('%02d:%02d', $hh, $mm);
+    }
+
+    // Get weekday from Julian Day
+    public static function weekday(int $year, int $month, int $day): int
+    {
+        $A=(int)($year/100);$B=2-$A+(int)($A/4);
+        $JD=(int)(365.25*($year+4716))+(int)(30.6001*($month+1))+$day+$B-1524.5;
+        return (int)($JD+1.5) % 7;
+    }
+}
+
+// ─────────────────────────────────────────────
+// USAGE EXAMPLE — Full Phase 6+7 pipeline:
+// ─────────────────────────────────────────────
+// $sun     = Sunrise::compute(2026,4,22, 23.0225,72.5714, 5.5, 53);
+// $sunNext = Sunrise::compute(2026,4,23, 23.0225,72.5714, 5.5, 53);
+// $riseH   = $sun['sunrise']['h'] + $sun['sunrise']['m']/60;
+// $setH    = $sun['sunset']['h']  + $sun['sunset']['m']/60;
+// $nextRise= $sunNext['sunrise']['h'] + $sunNext['sunrise']['m']/60 + 24;
+// $wd      = Muhurta::weekday(2026,4,22);
+// $muhurta = Muhurta::compute($riseH,$setH,$nextRise,$wd);
+//
+// echo Muhurta::fmtHM($muhurta['rahu']['start']); // Rahu Kalam start
+// foreach($muhurta['chog_day'] as $c) {
+//     echo $c['name'].' '.$c['gu'].' '.Muhurta::fmtHM($c['startH']).'-'.Muhurta::fmtHM($c['endH']);
+// }`;
+
+document.getElementById('phpCode').textContent=PHP_CODE;
+
+function copyCode(){
+  navigator.clipboard.writeText(PHP_CODE).then(()=>{
+    const btn=document.querySelector('.copy-btn');
+    btn.textContent='✔ Copied!';setTimeout(()=>btn.textContent='⎘ Copy PHP Code',2000);
+  });
+}
+
+buildRefList();
+setTimeout(()=>calculate(null),50);
+</script>
+</body>
+</html>

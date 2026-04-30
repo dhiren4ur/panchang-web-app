@@ -1,0 +1,138 @@
+<?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST');
+header('Access-Control-Allow-Headers: Content-Type');
+
+$CLIENT_ID = '9dd3b43d-2d38-482b-a2eb-7aa8e970a6a2';
+$CLIENT_SECRET = '2eHjEQT6hCUOYGN94YUOfkCTMu9xS8dKm5UQraNO';
+
+$sign = strtolower(trim($_POST['sign'] ?? 'aries'));
+$date = strtolower(trim($_POST['date'] ?? 'today'));
+
+$valid_signs = [
+    'aries','taurus','gemini','cancer','leo','virgo',
+    'libra','scorpio','sagittarius','capricorn','aquarius','pisces'
+];
+
+$valid_dates = ['yesterday', 'today', 'tomorrow'];
+
+if (!in_array($sign, $valid_signs, true)) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Invalid sign',
+        'valid_signs' => $valid_signs
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+if (!in_array($date, $valid_dates, true)) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Invalid date',
+        'valid_dates' => $valid_dates
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+if ($CLIENT_ID === 'YOUR_CLIENT_ID' || $CLIENT_SECRET === 'YOUR_CLIENT_SECRET') {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Please set your Prokerala CLIENT_ID and CLIENT_SECRET first'
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+use GuzzleHttp\Client as PsrHttpClient;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Prokerala\Common\Api\Authentication\Oauth2;
+use Prokerala\Common\Api\Client;
+use Prokerala\Api\Horoscope\Service\DailyPredictionAdvanced;
+use Prokerala\Common\Api\Exception\AuthenticationException;
+use Prokerala\Common\Api\Exception\QuotaExceededException;
+use Prokerala\Common\Api\Exception\RateLimitExceededException;
+use Prokerala\Common\Api\Exception\ValidationException;
+use Prokerala\Common\Api\Exception\Exception as ProkeralaException;
+
+try {
+    $psr17Factory = new Psr17Factory();
+    $httpClient = new PsrHttpClient();
+
+    $authClient = new Oauth2(
+        $CLIENT_ID,
+        $CLIENT_SECRET,
+        $httpClient,
+        $psr17Factory,
+        $psr17Factory
+    );
+
+    $client = new Client($authClient, $httpClient, $psr17Factory);
+
+    $tz = new DateTimeZone('Asia/Kolkata');
+    $datetime = new DateTimeImmutable('now', $tz);
+
+    $horoscopeService = new DailyPredictionAdvanced($client);
+
+    $result = $horoscopeService->process($datetime, $sign, $date);
+
+    $predictions = [];
+    if (method_exists($result, 'getDailyPredictions')) {
+        foreach ($result->getDailyPredictions() as $dailyPrediction) {
+            $predictions[] = [
+                'sign' => method_exists($dailyPrediction->getSign(), 'getName') ? $dailyPrediction->getSign()->getName() : null,
+                'predictions' => array_map(function ($prediction) {
+                    return [
+                        'type' => method_exists($prediction, 'getType') ? $prediction->getType() : null,
+                        'description' => method_exists($prediction, 'getDescription') ? $prediction->getDescription() : null,
+                    ];
+                }, method_exists($dailyPrediction, 'getPredictions') ? $dailyPrediction->getPredictions() : [])
+            ];
+        }
+    }
+
+    echo json_encode([
+        'success' => true,
+        'sign' => $sign,
+        'date' => $date,
+        'datetime' => $datetime->format(DateTimeInterface::ATOM),
+        'predictions' => $predictions,
+        'raw_result' => method_exists($result, 'jsonSerialize') ? $result->jsonSerialize() : $result,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+} catch (ValidationException $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Validation failed',
+        'details' => method_exists($e, 'getValidationErrors') ? $e->getValidationErrors() : $e->getMessage()
+    ], JSON_PRETTY_PRINT);
+} catch (QuotaExceededException $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Quota exceeded',
+        'details' => $e->getMessage()
+    ], JSON_PRETTY_PRINT);
+} catch (RateLimitExceededException $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Rate limit exceeded',
+        'details' => $e->getMessage()
+    ], JSON_PRETTY_PRINT);
+} catch (AuthenticationException $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Authentication failed',
+        'details' => $e->getMessage()
+    ], JSON_PRETTY_PRINT);
+} catch (ProkeralaException $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Prokerala API error',
+        'details' => $e->getMessage()
+    ], JSON_PRETTY_PRINT);
+} catch (Throwable $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unexpected error',
+        'details' => $e->getMessage()
+    ], JSON_PRETTY_PRINT);
+}
+?>

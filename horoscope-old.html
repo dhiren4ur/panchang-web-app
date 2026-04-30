@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>દૈનિક રાશિ ભવિષ્ય</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#e65c00">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary:       #ff6600;
+            --primary-dark:  #cc5200;
+            --primary-light: #ff9933;
+            --header-bg:     linear-gradient(135deg, #b33000 0%, #e65c00 35%, #ff8c00 70%, #ffb347 100%);
+            --body-bg:       linear-gradient(135deg, #f5e6d3 0%, #d4a574 100%);
+            --container-bg:  linear-gradient(to bottom, #fef9f0, #f5e6d3);
+            --cell-bg:       linear-gradient(to bottom, #fffef9 0%, #fff8f0 100%);
+            --cell-border:   #e6d5b8;
+            --weekday-bg:    #e65c00;
+            --today-bg:      linear-gradient(to bottom, #ffe0b2 0%, #ffcc80 100%);
+            --today-border:  #ff6600;
+            --date-num:      #2c1810;
+            --tithi-color:   #5d4037;
+            --festival-color:#d32f2f;
+            --modal-border:  #ff6600;
+            --modal-header:  #ff6600;
+            --detail-border: #e0d0b8;
+            --bar-bg:        rgba(0,0,0,0.08);
+            --bar-border:    #cc5200;
+            --score-4: #2e7d32;
+            --score-3: #1565c0;
+            --score-2: #e65100;
+            --score-1: #b71c1c;
+        }
+        body.lang-en {
+            --primary:       #00796b;
+            --primary-dark:  #004d40;
+            --primary-light: #26a69a;
+            --header-bg:     linear-gradient(135deg, #00695c 0%, #00897b 40%, #26a69a 80%, #4db6ac 100%);
+            --body-bg:       linear-gradient(135deg, #e0f2f1 0%, #80cbc4 100%);
+            --container-bg:  linear-gradient(to bottom, #f0fffe, #e0f2f1);
+            --cell-bg:       linear-gradient(to bottom, #f0fffe 0%, #e8f8f5 100%);
+            --cell-border:   #b2dfdb;
+            --weekday-bg:    #26a69a;
+            --today-border:  #00796b;
+            --date-num:      #004d40;
+            --tithi-color:   #00695c;
+            --modal-border:  #00796b;
+            --modal-header:  #00796b;
+            --detail-border: #b2dfdb;
+            --bar-border:    #004d40;
+        }
+
+        body {
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            background: var(--body-bg);
+            min-height: 100vh;
+            padding: 12px;
+            transition: background 0.4s ease;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: background 0.4s ease;
+        }
+
+        /* ── HEADER ── */
+        .calendar-header {
+            background: var(--header-bg);
+            padding: 0 16px 16px;
+            border-bottom: 5px solid var(--primary-dark);
+            position: relative;
+            overflow: hidden;
+            transition: background 0.4s ease, border-color 0.4s ease;
+        }
+        .rangoli-watermark {
+            position: absolute; right: -30px; bottom: -20px;
+            width: 180px; height: 180px; opacity: 0.25; pointer-events: none; z-index: 1;
+        }
+        .rangoli-watermark-left {
+            position: absolute; left: -30px; top: 10px;
+            width: 220px; height: 220px; opacity: 0.15; pointer-events: none; z-index: 1;
+        }
+
+        /* Top row */
+        .header-top-row {
+            display: flex; justify-content: flex-end; align-items: center;
+            gap: 8px; padding: 10px 0 6px;
+        }
+        .back-btn {
+            padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            cursor: pointer; font-family: 'Noto Sans Gujarati', sans-serif;
+            background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.75);
+            color: #ffffff; transition: all 0.2s; text-decoration: none;
+            display: inline-block;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.35); }
+        .lang-toggle {
+            background: linear-gradient(to bottom, #2ecc71, #1e8449);
+            border: none; border-radius: 8px; color: #ffffff;
+            font-size: 13px; font-weight: 800; letter-spacing: 1.5px;
+            padding: 6px 14px; min-width: 52px; cursor: pointer;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            box-shadow: 0 4px 0 #145a32, 0 5px 10px rgba(0,0,0,0.3);
+            transform: translateY(0);
+            transition: box-shadow 0.1s, transform 0.1s, background 0.2s;
+        }
+        .lang-toggle:hover { background: linear-gradient(to bottom, #3de08a, #27ae60); }
+        .lang-toggle:active { transform: translateY(3px); box-shadow: 0 1px 0 #145a32; }
+
+        /* Title row */
+        .header-title-row {
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; position: relative; z-index: 2; margin: 2px 0;
+        }
+        .swastik-svg { width: 30px; height: 30px; opacity: 0.92; flex-shrink: 0; }
+        .swastik-mirror { transform: scaleX(-1); }
+        .app-title {
+            font-size: 22px; font-weight: 700; color: #fff;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        .samvat-subtitle {
+            font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.88);
+            text-align: center; letter-spacing: 0.5px; margin-top: 4px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3); position: relative; z-index: 2;
+        }
+
+        /* ── PANCHANG INFO STRIP ── */
+        .info-strip {
+            display: flex; flex-wrap: wrap; gap: 6px 16px;
+            justify-content: center; align-items: center;
+            padding: 10px 16px;
+            background: var(--bar-bg);
+            border-bottom: 2px solid var(--bar-border);
+            transition: background 0.4s, border-color 0.4s;
+        }
+        .info-pill {
+            display: flex; flex-direction: column; align-items: center; gap: 1px;
+        }
+        .info-label {
+            font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+            color: var(--tithi-color); font-weight: 700; opacity: 0.7;
+        }
+        .info-val {
+            font-size: 13px; font-weight: 700; color: var(--date-num);
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        .info-val.yoga-bad  { color: #b71c1c; }
+        .info-val.yoga-good { color: #2e7d32; }
+
+        /* ── RASHI GRID ── */
+        .rashi-grid-wrap {
+            padding: 14px 12px 10px;
+            border-bottom: 2px solid var(--bar-border);
+            background: var(--container-bg);
+        }
+        .rashi-grid-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.08em; color: var(--tithi-color); opacity: 0.7;
+            text-align: center; margin-bottom: 10px;
+        }
+        .rashi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        @media (max-width: 480px) {
+            .rashi-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        .rashi-btn {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 3px; cursor: pointer; padding: 8px 4px 6px;
+            border-radius: 12px; border: 2px solid transparent;
+            background: var(--cell-bg);
+            border-color: var(--cell-border);
+            transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.12);
+        }
+        .rashi-btn:active { transform: translateY(2px); box-shadow: none; }
+        .rashi-btn.active {
+            background: var(--today-bg);
+            border-color: var(--today-border);
+            box-shadow: 0 0 12px rgba(255,102,0,0.35);
+        }
+        .rashi-symbol { font-size: 22px; line-height: 1; }
+        .rashi-img { width: 52px; height: 52px; object-fit: contain; }
+        .rashi-letters {
+            font-size: 11px; font-weight: 700;
+            color: var(--primary-dark);
+            font-family: 'Noto Sans Gujarati', sans-serif;
+            text-align: center; line-height: 1.2;
+            opacity: 0.85;
+        }
+        .rashi-name-gu {
+            font-size: 13px; font-weight: 700; color: var(--tithi-color);
+            font-family: 'Noto Sans Gujarati', sans-serif; text-align: center;
+            line-height: 1.2;
+        }
+        .rashi-name-en {
+            font-size: 11px; font-weight: 600; color: var(--tithi-color);
+            text-align: center; line-height: 1.2; opacity: 0.8;
+        }
+        .rashi-score-bar {
+            width: 24px; height: 3px; border-radius: 2px; margin-top: 2px;
+        }
+
+        /* ── FORECAST PANEL ── */
+        .forecast-wrap {
+            padding: 14px 14px 30px;
+        }
+
+        /* Selected rashi header */
+        .selected-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .selected-sym { font-size: 32px; line-height: 1; }
+        .selected-name {
+            font-size: 22px; font-weight: 700; color: var(--date-num);
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+        .selected-name-en { font-size: 14px; font-weight: 500; color: var(--tithi-color); opacity: 0.8; }
+        .rating-badge {
+            font-size: 12px; font-weight: 700; padding: 4px 14px;
+            border-radius: 50px; color: #fff; letter-spacing: 0.04em;
+        }
+
+        /* Stars */
+        .stars { display: flex; gap: 2px; font-size: 20px; margin-bottom: 10px; }
+        .star-on  { color: #ff8f00; }
+        .star-off { color: #d8cfc5; }
+
+        /* Chandra Bala chip */
+        .cb-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.35);
+            border-radius: 50px; padding: 4px 12px; font-size: 12px;
+            color: var(--primary-dark); font-weight: 600; margin-bottom: 14px;
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+
+        /* Forecast card — styled like detail modal */
+        .forecast-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 2px solid var(--modal-border);
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transition: border-color 0.4s;
+        }
+        .fc-section {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--detail-border);
+            transition: border-color 0.4s;
+        }
+        .fc-section:last-child { border-bottom: none; }
+        .fc-sec-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--tithi-color); font-weight: 700; margin-bottom: 7px;
+            display: flex; align-items: center; gap: 6px; opacity: 0.75;
+        }
+        .fc-sec-label::after {
+            content: ''; flex: 1; height: 1px; background: var(--detail-border);
+        }
+        .fc-text {
+            font-size: 14px; line-height: 1.8; color: var(--date-num);
+            font-family: 'Noto Sans Gujarati', sans-serif;
+        }
+
+        /* Footer chips on card */
+        .fc-footer {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            padding: 10px 14px;
+            background: rgba(255,102,0,0.06);
+            border-top: 1px solid var(--detail-border);
+        }
+        body.lang-en .fc-footer { background: rgba(0,121,107,0.06); }
+        .fc-tag {
+            font-size: 11px; padding: 3px 10px; border-radius: 50px;
+            border: 1px solid var(--detail-border); background: #fff;
+            color: var(--tithi-color); font-family: 'Noto Sans Gujarati', sans-serif;
+            font-weight: 600;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0e8e0 25%, #e8ddd4 50%, #f0e8e0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite;
+            border-radius: 8px;
+            height: 16px; margin-bottom: 8px;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        /* Lang visibility */
+        .gu { display: block; }
+        .en { display: none; }
+        body.lang-en .gu { display: none; }
+        body.lang-en .en { display: block; }
+
+        /* Error state */
+        .error-box {
+            text-align: center; padding: 40px 20px; color: var(--tithi-color);
+        }
+        .error-box .err-icon { font-size: 40px; margin-bottom: 12px; }
+        .error-box p { font-size: 14px; opacity: 0.8; }
+    </style>
+</head>
+<body>
+<div class="container" id="mainContainer">
+
+    <!-- ═══════ HEADER ═══════ -->
+    <div class="calendar-header">
+
+        
+        <!-- Rangoli watermark right -->
+        <img src="rangoli.png" class="rangoli-watermark" alt="">
+
+        <!-- Rangoli watermark left -->
+        <!-- Rangoli watermark left -->
+        <img src="rangoli2.png" class="rangoli-watermark-left" alt="">
+
+        <!-- Top row: Back + Lang -->
+        <div class="header-top-row">
+            <a href="index.html" class="back-btn">← કૅલેન્ડર</a>
+            <button class="lang-toggle" id="lang-toggle" onclick="toggleLang()">
+                <span id="lang-label">EN</span>
+            </button>
+        </div>
+
+        <!-- Row 2: Swastik + Title + Swastik -->
+        <div class="header-title-row">
+            <img src="swastik.png" class="swastik-svg" alt="">
+            <span id="page-title" class="app-title">દૈનિક રાશિ ભવિષ્ય</span>
+            <img src="swastik.png" class="swastik-svg swastik-mirror" alt="">
+        </div>
+
+        <!-- Samvat subtitle -->
+        <div class="samvat-subtitle" id="samvat-line">...</div>
+    </div>
+
+    <!-- ═══════ PANCHANG STRIP ═══════ -->
+    <div class="info-strip" id="info-strip">
+        <div class="info-pill">
+            <span class="info-label gu">નક્ષત્ર</span>
+            <span class="info-label en">Nakshatra</span>
+            <span class="info-val" id="inf-nak">—</span>
+        </div>
+        <div class="info-pill">
+            <span class="info-label gu">ચંદ્ર રાશિ</span>
+            <span class="info-label en">Moon Sign</span>
+            <span class="info-val" id="inf-moon">—</span>
+        </div>
+        <div class="info-pill">
+            <span class="info-label gu">તિથિ</span>
+            <span class="info-label en">Tithi</span>
+            <span class="info-val" id="inf-tithi">—</span>
+        </div>
+        <div class="info-pill">
+            <span class="info-label gu">યોગ</span>
+            <span class="info-label en">Yoga</span>
+            <span class="info-val" id="inf-yoga">—</span>
+        </div>
+        <div class="info-pill">
+            <span class="info-label">Sunrise</span>
+            <span class="info-val" id="inf-sunrise">—</span>
+        </div>
+    </div>
+
+    <!-- ═══════ RASHI GRID ═══════ -->
+    <div class="rashi-grid-wrap">
+        <div class="rashi-grid-title gu">રાશિ પસંદ કરો</div>
+        <div class="rashi-grid-title en">Select Your Rashi</div>
+        <div class="rashi-grid" id="rashi-grid">
+            <!-- Injected by JS -->
+            <div class="skeleton" style="height:80px;border-radius:12px"></div>
+            <div class="skeleton" style="height:80px;border-radius:12px"></div>
+            <div class="skeleton" style="height:80px;border-radius:12px"></div>
+            <div class="skeleton" style="height:80px;border-radius:12px"></div>
+            <div class="skeleton" style="height:80px;border-radius:12px"></div>
+            <div class="skeleton" style="height:80px;border-radius:12px"></div>
+        </div>
+    </div>
+
+    <!-- ═══════ FORECAST PANEL ═══════ -->
+    <div class="forecast-wrap" id="forecast-wrap">
+        <div style="padding:30px;text-align:center;opacity:0.5;font-size:14px">
+            <div style="font-size:36px;margin-bottom:8px">🔮</div>
+            <div class="gu">ઉપર તમારી રાશિ પસંદ કરો</div>
+            <div class="en">Select your rashi above</div>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+const RASHIS = [
+    { key:'Mesh',       sym:'♈', gu:'મેષ',     en:'Aries',       img:'rashi/mesh.png',       letters:'અ, લ, ઈ'      },
+    { key:'Vrishabha',  sym:'♉', gu:'વૃષભ',    en:'Taurus',      img:'rashi/vrishabha.png',  letters:'બ, વ, ઉ'      },
+    { key:'Mithuna',    sym:'♊', gu:'મિથુન',   en:'Gemini',      img:'rashi/mithuna.png',    letters:'ક, છ, ઘ'      },
+    { key:'Karka',      sym:'♋', gu:'કર્ક',    en:'Cancer',      img:'rashi/karka.png',      letters:'ડ, હ'         },
+    { key:'Simha',      sym:'♌', gu:'સિંહ',    en:'Leo',         img:'rashi/simha.png',      letters:'મ, ટ'         },
+    { key:'Kanya',      sym:'♍', gu:'કન્યા',   en:'Virgo',       img:'rashi/kanya.png',      letters:'પ, ઠ, ણ'      },
+    { key:'Tula',       sym:'♎', gu:'તુલા',    en:'Libra',       img:'rashi/tula.png',       letters:'ર, ત'         },
+    { key:'Vrishchika', sym:'♏', gu:'વૃશ્ચિક', en:'Scorpio',     img:'rashi/vrishchika.png', letters:'ન, ય'         },
+    { key:'Dhanu',      sym:'♐', gu:'ધન',      en:'Sagittarius', img:'rashi/dhanu.png',      letters:'ભ, ધ, ફ'      },
+    { key:'Makara',     sym:'♑', gu:'મકર',     en:'Capricorn',   img:'rashi/makara.png',     letters:'ખ, જ'         },
+    { key:'Kumbha',     sym:'♒', gu:'કુંભ',    en:'Aquarius',    img:'rashi/kumbha.png',     letters:'ગ, શ, સ'      },
+    { key:'Meena',      sym:'♓', gu:'મીન',     en:'Pisces',      img:'rashi/meena.png',      letters:'દ, ચ, થ'      },
+];
+const SCORE_COLORS = { 4:'#2e7d32', 3:'#1565c0', 2:'#e65100', 1:'#b71c1c' };
+const SCORE_LABEL_GU = { 4:'ઉત્તમ', 3:'સારો', 2:'મિશ્ર', 1:'સાવધ' };
+const SCORE_LABEL_EN = { 4:'Excellent', 3:'Good', 2:'Mixed', 1:'Caution' };
+
+let forecastData = null;
+let currentLang  = localStorage.getItem('forecast_lang') || 'gu';
+let activeRashi  = null;
+
+// ── LANG TOGGLE ──────────────────────────────────────────────────────────────
+function toggleLang() {
+    currentLang = currentLang === 'gu' ? 'en' : 'gu';
+    applyLang();
+    localStorage.setItem('forecast_lang', currentLang);
+}
+function applyLang() {
+    document.body.className = 'lang-' + currentLang;
+    document.getElementById('lang-label').textContent = currentLang === 'gu' ? 'EN' : 'GU';
+    document.getElementById('page-title').textContent =
+        currentLang === 'gu' ? 'દૈનિક રાશિ ભવિષ્ય' : 'Daily Horoscope';
+    if (forecastData) {
+        updateInfoStrip();
+        renderRashiGrid();
+        if (activeRashi) renderForecast(activeRashi);
+    }
+}
+
+// ── FETCH DATA ───────────────────────────────────────────────────────────────
+async function loadForecast() {
+    try {
+        const res  = await fetch('horoscope_api.php');
+        forecastData = await res.json();
+        if (forecastData.error) throw new Error(forecastData.error);
+        applyLang();
+    } catch(e) {
+        document.getElementById('rashi-grid').innerHTML =
+            `<div class="error-box" style="grid-column:1/-1">
+                <div class="err-icon">⚠️</div>
+                <p>Could not load forecast data.<br>${e.message}</p>
+             </div>`;
+        document.getElementById('samvat-line').textContent = '';
+    }
+}
+
+// ── INFO STRIP ───────────────────────────────────────────────────────────────
+function updateInfoStrip() {
+    const d  = forecastData;
+    const gu = currentLang === 'gu';
+
+    document.getElementById('samvat-line').textContent =
+        `વિ.સ. ${d.samvat} — ${d.lunar_month_gu} — ${d.vara_gu} ${d.date_str}`;
+
+    document.getElementById('inf-nak').textContent    = gu ? d.nakshatra_gu  : d.nakshatra;
+    document.getElementById('inf-moon').textContent   = gu ? d.moon_rashi_gu : d.moon_rashi;
+    document.getElementById('inf-tithi').textContent  = gu ? (d.paksha_gu + ' ' + d.tithi_gu) : (d.paksha + ' ' + d.tithi);
+    const yEl = document.getElementById('inf-yoga');
+    yEl.textContent   = gu ? d.yoga_gu : d.yoga;
+    yEl.className     = 'info-val' + (d.yoga_quality === 'bad' ? ' yoga-bad' : d.yoga_quality === 'good' ? ' yoga-good' : '');
+    document.getElementById('inf-sunrise').textContent = d.sunrise;
+}
+
+// ── RASHI GRID ───────────────────────────────────────────────────────────────
+function renderRashiGrid() {
+    const grid = document.getElementById('rashi-grid');
+    const gu   = currentLang === 'gu';
+    grid.innerHTML = RASHIS.map((r, i) => {
+        const f     = forecastData.forecasts[r.key];
+        const sc    = f ? f.score : 2;
+        const col   = SCORE_COLORS[sc] || '#888';
+        const isAct = activeRashi === r.key;
+        return `<button class="rashi-btn${isAct?' active':''}" onclick="selectRashi('${r.key}')" id="rb-${r.key}">
+            <img src="${r.img}" class="rashi-img" alt="${r.en}">
+            <span class="rashi-name-gu" ${gu?'':'style="display:none"'}>${r.gu}</span>
+            <span class="rashi-name-en" ${gu?'style="display:none"':''}>${r.en}</span>
+            <span class="rashi-letters">${r.letters}</span>
+            <div class="rashi-score-bar" style="background:${col}"></div>
+        </button>`;
+    }).join('');
+}
+
+// ── SELECT RASHI ─────────────────────────────────────────────────────────────
+function selectRashi(key) {
+    activeRashi = key;
+    // Update active state on buttons
+    document.querySelectorAll('.rashi-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('rb-' + key);
+    if (btn) { btn.classList.add('active'); btn.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+    renderForecast(key);
+}
+
+// ── RENDER FORECAST ───────────────────────────────────────────────────────────
+function renderForecast(key) {
+    const f    = forecastData.forecasts[key];
+    const r    = RASHIS.find(x => x.key === key);
+    const gu   = currentLang === 'gu';
+    const sc   = f.score;
+    const col  = SCORE_COLORS[sc];
+    const lbl  = gu ? SCORE_LABEL_GU[sc] : SCORE_LABEL_EN[sc];
+
+    // Parse forecast into 3 sections (split by \n\n)
+    const partsEn = (f.forecast_en || '').split('\n\n').filter(Boolean);
+    const partsGu = (f.forecast_gu || '').split('\n\n').filter(Boolean);
+    const nakEn   = partsEn[0] || '';
+    const cbEn    = partsEn[1] || '';
+    const varaEn  = partsEn[2] || '';
+    const nakGu   = partsGu[0] || '';
+    const cbGu    = partsGu[1] || '';
+    const varaGu  = partsGu[2] || '';
+
+    // Stars
+    let stars = '';
+    for (let s = 1; s <= 4; s++) {
+        stars += `<span class="${s <= sc ? 'star-on' : 'star-off'}">★</span>`;
+    }
+
+    // CB label
+    const cbLabel = gu ? f.chandra_bala_gu : f.chandra_bala;
+
+    document.getElementById('forecast-wrap').innerHTML = `
+        <div class="selected-header">
+            <img src="${r.img}" style="width:42px;height:42px;object-fit:contain;" alt="${r.en}">
+            <div>
+                <div class="selected-name">${gu ? r.gu : r.en}</div>
+                <div class="selected-name-en">${gu ? r.en : r.gu}</div>
+            </div>
+            <span class="rating-badge" style="background:${col}">${lbl}</span>
+        </div>
+
+        <div class="stars">${stars}</div>
+
+        <div class="cb-chip">🌙 ${gu ? 'ચંદ્ર બળ' : 'Chandra Bala'}: ${cbLabel}</div>
+
+        <div class="forecast-card">
+
+            <div class="fc-section">
+                <div class="fc-sec-label">✦ ${gu ? 'નક્ષત્ર' : 'Nakshatra'}</div>
+                <div class="fc-text">${gu ? nakGu : nakEn}</div>
+            </div>
+
+            <div class="fc-section">
+                <div class="fc-sec-label">🌙 ${gu ? 'ચંદ્ર બળ' : 'Chandra Bala'}</div>
+                <div class="fc-text">${gu ? cbGu : cbEn}</div>
+            </div>
+
+            <div class="fc-section">
+                <div class="fc-sec-label">☀ ${gu ? 'વારની ઊર્જા' : 'Day Energy'}</div>
+                <div class="fc-text">${gu ? varaGu : varaEn}</div>
+            </div>
+
+            <div class="fc-footer">
+                <span class="fc-tag">${gu ? 'નક્ષ:' : 'Nak:'} ${gu ? forecastData.nakshatra_gu : forecastData.nakshatra}</span>
+                <span class="fc-tag">${gu ? 'ચંદ્ર:' : 'Moon:'} ${gu ? forecastData.moon_rashi_gu : forecastData.moon_rashi}</span>
+                <span class="fc-tag" style="color:${forecastData.yoga_quality==='bad'?'#b71c1c':forecastData.yoga_quality==='good'?'#2e7d32':'inherit'}">
+                    ${gu ? 'યોગ:' : 'Yoga:'} ${gu ? forecastData.yoga_gu : forecastData.yoga}
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+applyLang();
+loadForecast();
+</script>
+</body>
+</html>

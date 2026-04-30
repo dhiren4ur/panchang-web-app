@@ -1,0 +1,84 @@
+<?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST');
+
+$CLIENT_ID = 'YOUR_CLIENT_ID';
+$CLIENT_SECRET = 'YOUR_CLIENT_SECRET';
+
+$sign = strtolower(trim($_POST['sign'] ?? 'aries'));
+$type = strtolower(trim($_POST['type'] ?? 'general')); // general, career, health, love
+
+$valid_signs = ['aries','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
+$valid_types = ['general','career','health','love']; // EXACT from Prokerala docs
+
+if (!in_array($sign, $valid_signs, true)) {
+    echo json_encode(['error' => 'Invalid sign']);
+    exit;
+}
+
+if (!in_array($type, $valid_types, true)) {
+    echo json_encode([
+        'error' => 'Invalid type', 
+        'type' => $type,
+        'valid_types' => $valid_types
+    ]);
+    exit;
+}
+
+use GuzzleHttp\Client as PsrHttpClient;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Prokerala\Common\Api\Authentication\Oauth2;
+use Prokerala\Common\Api\Client;
+use Prokerala\Api\Horoscope\Service\DailyPredictionAdvanced;
+
+$psr17Factory = new Psr17Factory();
+$httpClient = new PsrHttpClient();
+
+$authClient = new Oauth2($CLIENT_ID, $CLIENT_SECRET, $httpClient, $psr17Factory, $psr17Factory);
+$client = new Client($authClient, $httpClient, $psr17Factory);
+
+$timezone = 'Asia/Kolkata';
+$tz = new DateTimeZone($timezone);
+$datetime = new DateTimeImmutable('now', $tz);
+
+try {
+    $horoscopeClass = new DailyPredictionAdvanced($client);
+    $result = $horoscopeClass->process($datetime, $sign, $type);
+
+    $dailyPredictions = $result->getDailyPredictions();
+    $matchedPrediction = null;
+
+    foreach ($dailyPredictions as $dailyPrediction) {
+        if (strtolower($dailyPrediction->getSign()->getName()) === $sign) {
+            foreach ($dailyPrediction->getPredictions() as $prediction) {
+                if (strtolower($prediction->getType()) === $type) {
+                    $matchedPrediction = [
+                        'sign' => $dailyPrediction->getSign()->getName(),
+                        'type' => $prediction->getType(),
+                        'description' => $prediction->getDescription() ?? 'No description',
+                        'full_data' => (array) $prediction
+                    ];
+                    break 2;
+                }
+            }
+        }
+    }
+
+    echo json_encode([
+        'success' => true,
+        'sign' => $sign,
+        'type' => $type,
+        'date' => $datetime->format('Y-m-d H:i:s T'),
+        'rashifal' => $matchedPrediction ?: 'No matching prediction found'
+    ], JSON_PRETTY_PRINT);
+
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage(),
+        'code' => $e->getCode(),
+        'trace' => $e->getTraceAsString()
+    ], JSON_PRETTY_PRINT);
+}
+?>

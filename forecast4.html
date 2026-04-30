@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>રાશિ ભવિષ્ય — Gujarati Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+    --primary:       #ff6600;
+    --primary-dark:  #cc5200;
+    --primary-light: #ff9933;
+    --header-bg:     linear-gradient(135deg,#b33000 0%,#e65c00 35%,#ff8c00 70%,#ffb347 100%);
+    --body-bg:       linear-gradient(135deg,#f5e6d3 0%,#d4a574 100%);
+    --card-bg:       linear-gradient(to bottom,#fef9f0,#f5e6d3);
+    --cell-bg:       linear-gradient(to bottom,#fffef9 0%,#fff8f0 100%);
+    --cell-border:   #e6d5b8;
+    --tithi-color:   #5d4037;
+    --date-num:      #2c1810;
+    --bar-border:    #cc5200;
+    --gold:          #c8900a;
+    --gold-light:    #f5c842;
+}
+
+body {
+    font-family: 'Noto Sans Gujarati', sans-serif;
+    background: var(--body-bg);
+    min-height: 100vh;
+    padding: 0 0 40px 0;
+}
+
+/* ── HEADER ── */
+.cal-header {
+    background: var(--header-bg);
+    padding: 0 16px 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.cal-header::before {
+    content:'';
+    position:absolute; inset:0;
+    background: repeating-linear-gradient(45deg,transparent,transparent 20px,rgba(255,255,255,0.03) 20px,rgba(255,255,255,0.03) 40px);
+}
+.header-top {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 0 6px;
+    position:relative; z-index:2;
+}
+.back-btn {
+    background: rgba(255,255,255,0.2);
+    border: 1.5px solid rgba(255,255,255,0.5);
+    color: #fff; padding: 6px 14px; border-radius: 20px;
+    font-size:13px; font-family:inherit; cursor:pointer;
+    transition: background 0.2s;
+}
+.back-btn:hover { background: rgba(255,255,255,0.35); }
+
+/* Tier switcher */
+.tier-switcher {
+    display:flex; gap:6px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 20px; padding: 4px;
+}
+.tier-btn {
+    padding: 5px 12px; border-radius: 16px;
+    border: none; font-family:inherit; font-size:12px;
+    cursor:pointer; font-weight:600;
+    transition: all 0.2s; color: rgba(255,255,255,0.7);
+    background: transparent;
+}
+.tier-btn.active {
+    background: #fff; color: var(--primary-dark);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.header-title {
+    text-align:center; position:relative; z-index:2;
+    margin: 4px 0 2px;
+}
+.header-title h1 {
+    font-size:22px; font-weight:700; color:#fff;
+    text-shadow:1px 1px 4px rgba(0,0,0,0.4);
+}
+.header-title p {
+    font-size:12px; color:rgba(255,255,255,0.85);
+    margin-top:2px;
+}
+
+/* Panchang strip */
+.panchang-strip {
+    display:flex; gap:8px; overflow-x:auto;
+    padding: 10px 0 4px;
+    position:relative; z-index:2;
+    scrollbar-width:none;
+}
+.panchang-strip::-webkit-scrollbar { display:none; }
+.pc-chip {
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius:20px; padding:5px 12px;
+    white-space:nowrap; flex-shrink:0;
+    font-size:12px; color:#fff; font-weight:600;
+}
+.pc-chip span { opacity:0.8; font-weight:400; margin-left:3px; }
+
+/* ── MAIN ── */
+.main { max-width:900px; margin:0 auto; padding:16px; }
+
+/* ── DAY SCORE CARD (Guest) ── */
+.day-card {
+    background: var(--card-bg);
+    border: 2px solid var(--cell-border);
+    border-radius:20px; padding:24px;
+    text-align:center; margin-bottom:16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    animation: fadeUp 0.4s ease both;
+}
+.day-emoji-big { font-size:56px; line-height:1; margin-bottom:8px; }
+.day-rating {
+    font-size:28px; font-weight:700; color:var(--primary-dark);
+    margin-bottom:4px;
+}
+.day-tip {
+    font-size:14px; color:var(--tithi-color);
+    line-height:1.6; max-width:500px; margin:8px auto 0;
+}
+
+/* ── UPGRADE BANNER ── */
+.upgrade-banner {
+    background: linear-gradient(135deg,#fff8f0,#ffecd9);
+    border: 2px solid var(--primary-light);
+    border-radius:16px; padding:16px 20px;
+    margin-bottom:16px; text-align:center;
+    animation: fadeUp 0.4s 0.1s ease both;
+}
+.upgrade-banner p { font-size:13px; color:var(--tithi-color); margin-bottom:12px; }
+.upgrade-plans { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.plan-chip {
+    background: var(--primary);
+    color:#fff; border:none;
+    padding:8px 18px; border-radius:20px;
+    font-family:inherit; font-size:13px; font-weight:700;
+    cursor:pointer; box-shadow:0 3px 0 var(--primary-dark);
+    transition: all 0.15s;
+}
+.plan-chip:hover { transform:translateY(-2px); box-shadow:0 5px 0 var(--primary-dark); }
+.plan-chip.weekly  { background:#ff6600; }
+.plan-chip.monthly { background:#e65c00; }
+.plan-chip.yearly  { background:#b33000; }
+
+/* ── FREE TIER — SINGLE RASHI FORECAST ── */
+.forecast-card {
+    background: var(--card-bg);
+    border: 2px solid var(--cell-border);
+    border-radius:20px; overflow:hidden;
+    margin-bottom:16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    animation: fadeUp 0.4s ease both;
+}
+.fc-header {
+    background: var(--header-bg);
+    padding:16px 20px;
+    display:flex; justify-content:space-between; align-items:center;
+}
+.fc-rashi-info { display:flex; align-items:center; gap:12px; }
+.fc-symbol { font-size:36px; line-height:1; }
+.fc-name { color:#fff; }
+.fc-name h2 { font-size:20px; font-weight:700; }
+.fc-name p { font-size:12px; opacity:0.85; margin-top:2px; }
+.fc-score-badge {
+    text-align:center;
+    background: rgba(255,255,255,0.2);
+    border: 1.5px solid rgba(255,255,255,0.4);
+    border-radius:12px; padding:8px 14px;
+}
+.fc-score-badge .emoji { font-size:24px; }
+.fc-score-badge .rating { color:#fff; font-size:13px; font-weight:700; margin-top:2px; }
+
+.fc-body { padding:20px; }
+
+/* Factor bars */
+.factors-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:10px; margin-bottom:20px;
+}
+@media(max-width:480px){ .factors-grid { grid-template-columns:1fr; } }
+
+.factor-row { }
+.factor-label {
+    display:flex; justify-content:space-between;
+    font-size:11px; font-weight:600; color:var(--tithi-color);
+    margin-bottom:4px;
+}
+.factor-bar-wrap {
+    height:8px; background:rgba(0,0,0,0.08);
+    border-radius:4px; overflow:hidden;
+}
+.factor-bar {
+    height:100%; border-radius:4px;
+    transition: width 0.8s ease;
+}
+.factor-bar.s1 { background:linear-gradient(90deg,#ef5350,#e53935); width:25%; }
+.factor-bar.s2 { background:linear-gradient(90deg,#ffa726,#fb8c00); width:50%; }
+.factor-bar.s3 { background:linear-gradient(90deg,#66bb6a,#43a047); width:75%; }
+.factor-bar.s4 { background:linear-gradient(90deg,#26c6da,#00acc1); width:100%; }
+
+/* Forecast text */
+.forecast-sections { }
+.fs-section {
+    border-left:3px solid var(--primary-light);
+    padding:10px 14px; margin-bottom:10px;
+    background: rgba(255,102,0,0.04);
+    border-radius:0 10px 10px 0;
+    font-size:13px; color:var(--date-num);
+    line-height:1.7;
+}
+.fs-section strong { color:var(--primary-dark); display:block; margin-bottom:3px; font-size:12px; }
+
+/* Share card */
+.share-bar {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 20px; border-top:1px solid var(--cell-border);
+    background:rgba(255,102,0,0.03);
+}
+.share-caption { font-size:12px; color:var(--tithi-color); }
+.share-btn {
+    background:var(--primary); color:#fff;
+    border:2px solid var(--primary-dark);
+    padding:8px 18px; border-radius:20px;
+    font-family:inherit; font-size:13px; font-weight:700;
+    cursor:pointer; box-shadow:0 3px 0 var(--primary-dark);
+    transition:all 0.15s; display:flex; align-items:center; gap:6px;
+}
+.share-btn:hover { transform:translateY(-2px); box-shadow:0 5px 0 var(--primary-dark); }
+
+/* ── PAID TIER — 12 RASHI GRID ── */
+.paid-header-strip {
+    background: linear-gradient(135deg,#fff8f0,#ffecd9);
+    border:2px solid var(--primary-light);
+    border-radius:16px; padding:14px 18px;
+    margin-bottom:16px;
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:10px;
+    animation: fadeUp 0.3s ease both;
+}
+.plan-badge {
+    background:var(--primary);
+    color:#fff; padding:5px 14px;
+    border-radius:20px; font-size:12px; font-weight:700;
+    border:1.5px solid var(--primary-dark);
+}
+.expiry-note { font-size:12px; color:var(--tithi-color); }
+
+.rashi-grid {
+    display:grid;
+    grid-template-columns: repeat(4,1fr);
+    gap:12px; margin-bottom:16px;
+}
+@media(max-width:600px){ .rashi-grid { grid-template-columns:repeat(3,1fr); gap:8px; } }
+@media(max-width:380px){ .rashi-grid { grid-template-columns:repeat(2,1fr); } }
+
+.rashi-card {
+    background: var(--cell-bg);
+    border:2px solid var(--cell-border);
+    border-radius:14px; padding:14px 10px;
+    text-align:center; cursor:pointer;
+    transition:all 0.2s;
+    animation: fadeUp 0.4s ease both;
+}
+.rashi-card:hover {
+    border-color:var(--primary);
+    transform:translateY(-3px);
+    box-shadow:0 6px 18px rgba(255,102,0,0.2);
+}
+.rashi-card.selected {
+    border-color:var(--primary);
+    background:linear-gradient(to bottom,#fff8f0,#ffecd9);
+    box-shadow:0 4px 16px rgba(255,102,0,0.25);
+}
+.rc-sym { font-size:28px; margin-bottom:6px; }
+.rc-name { font-size:11px; font-weight:700; color:var(--date-num); margin-bottom:5px; }
+.rc-stars { display:flex; gap:2px; justify-content:center; margin-bottom:4px; }
+.rc-star { font-size:12px; }
+.rc-rating { font-size:10px; font-weight:600; padding:2px 8px; border-radius:8px; }
+.rc-rating.r1 { background:#ffeaea; color:#c62828; }
+.rc-rating.r2 { background:#fff8e1; color:#e65100; }
+.rc-rating.r3 { background:#e8f5e9; color:#2e7d32; }
+.rc-rating.r4 { background:#e3f2fd; color:#0277bd; }
+
+/* Expanded rashi detail */
+.rashi-detail {
+    background:var(--card-bg);
+    border:2px solid var(--primary-light);
+    border-radius:16px; overflow:hidden;
+    margin-bottom:16px;
+    animation: fadeUp 0.3s ease both;
+    display:none;
+}
+.rashi-detail.show { display:block; }
+.rd-header {
+    background:var(--header-bg);
+    padding:14px 18px;
+    display:flex; align-items:center; gap:12px;
+}
+.rd-sym { font-size:32px; }
+.rd-info h3 { color:#fff; font-size:18px; font-weight:700; }
+.rd-info p  { color:rgba(255,255,255,0.85); font-size:12px; }
+.rd-badge {
+    margin-left:auto; text-align:center;
+    background:rgba(255,255,255,0.2);
+    border:1.5px solid rgba(255,255,255,0.4);
+    border-radius:10px; padding:6px 12px;
+}
+.rd-badge .emoji { font-size:20px; }
+.rd-badge .rat   { color:#fff; font-size:12px; font-weight:700; }
+.rd-body { padding:16px 18px; }
+
+/* Access flags */
+.access-flags {
+    display:flex; gap:8px; flex-wrap:wrap;
+    margin-bottom:16px;
+    animation: fadeUp 0.3s ease both;
+}
+.af-chip {
+    padding:6px 14px; border-radius:20px;
+    font-size:12px; font-weight:700;
+    border:1.5px solid;
+}
+.af-chip.on  { background:#e8f5e9; color:#2e7d32; border-color:#81c784; }
+.af-chip.off { background:#f5f5f5; color:#9e9e9e; border-color:#e0e0e0; }
+
+/* ── FREE TIER RASHI CARD ── */
+.free-rc-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:4px 0; border-bottom:1px solid var(--cell-border);
+    font-size:10px;
+}
+.free-rc-item:last-child { border-bottom:none; }
+.free-rc-item .fi-label { color:var(--tithi-color); font-weight:600; }
+.free-rc-item .fi-val   { color:var(--primary-dark); font-weight:700; text-align:right; max-width:55%; }
+.free-detail {
+    background:var(--card-bg);
+    border:2px solid var(--primary-light);
+    border-radius:16px; overflow:hidden;
+    margin-bottom:16px; display:none;
+    animation: fadeUp 0.3s ease both;
+}
+.free-detail.show { display:block; }
+.free-detail-header {
+    background:var(--header-bg);
+    padding:14px 18px;
+    display:flex; align-items:center; gap:12px;
+}
+.free-detail-body { padding:18px; }
+.free-detail-row {
+    display:flex; align-items:flex-start; gap:12px;
+    padding:12px 0; border-bottom:1px solid var(--cell-border);
+}
+.free-detail-row:last-child { border-bottom:none; }
+.fdr-icon { font-size:22px; flex-shrink:0; margin-top:2px; }
+.fdr-content { flex:1; }
+.fdr-label { font-size:11px; font-weight:700; color:var(--primary-dark); margin-bottom:3px; }
+.fdr-value { font-size:13px; color:var(--date-num); line-height:1.6; }
+.fdr-gu    { font-size:11px; color:var(--tithi-color); margin-top:2px; }
+.free-lock-banner {
+    background:linear-gradient(135deg,#fff8f0,#ffecd9);
+    border-top:2px dashed var(--primary-light);
+    padding:14px 18px; text-align:center;
+}
+.free-lock-banner p { font-size:13px; color:var(--tithi-color); margin-bottom:10px; }
+
+/* ── LOADING ── */
+.loading-wrap {
+    text-align:center; padding:60px 20px;
+    animation: pulse 1.5s ease infinite;
+}
+.loading-wrap .om { font-size:48px; margin-bottom:12px; }
+.loading-wrap p { color:var(--tithi-color); font-size:14px; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+    from { opacity:0; transform:translateY(14px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pulse {
+    0%,100% { opacity:1; }
+    50%      { opacity:0.5; }
+}
+
+/* ── SCORE COLORS ── */
+.score-color-1 { color:#c62828; }
+.score-color-2 { color:#e65100; }
+.score-color-3 { color:#2e7d32; }
+.score-color-4 { color:#0277bd; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="cal-header">
+    <div class="header-top">
+        <button class="back-btn" onclick="window.history.back()">← કૅલેન્ડર</button>
+        <!-- TIER SWITCHER (testing only — remove in production) -->
+        <div class="tier-switcher">
+            <button class="tier-btn active" onclick="switchTier(0,this)">Guest</button>
+            <button class="tier-btn" onclick="switchTier(1,this)">Free</button>
+            <button class="tier-btn" onclick="switchTier(2,this)">Paid</button>
+        </div>
+    </div>
+    <div class="header-title">
+        <h1>🔮 રાશિ ભવિષ્ય</h1>
+        <p id="hdr-date">આજનો દિવસ</p>
+    </div>
+    <!-- Panchang strip -->
+    <div class="panchang-strip" id="panchangStrip">
+        <div class="pc-chip">⏳ લોડ થઈ રહ્યું છે...</div>
+    </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main" id="mainContent">
+    <div class="loading-wrap">
+        <div class="om">🕉</div>
+        <p>ભવિષ્ય ગણતરી થઈ રહી છે...</p>
+    </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const API_BASE = 'forecast_api.php';
+const RASHIS_GU = {
+    'Mesh':'મેષ','Vrishabha':'વૃષભ','Mithuna':'મિથુન','Karka':'કર્ક',
+    'Simha':'સિંહ','Kanya':'કન્યા','Tula':'તુલા','Vrishchika':'વૃશ્ચિક',
+    'Dhanu':'ધન','Makara':'મકર','Kumbha':'કુંભ','Meena':'મીન'
+};
+
+// Current state
+let currentTier = 0;
+let currentData = null;
+let selectedRashi = 'Karka'; // default — will come from user profile later
+
+// ── SAFE STRING HELPER ───────────────────────────────────────────────────────
+// Prevents "undefined" appearing in UI when API field is missing
+function s(val) { return (val === undefined || val === null) ? '' : String(val); }
+
+// ── TIER SWITCHER (testing) ──────────────────────────────────────────────────
+function switchTier(tier, btn) {
+    currentTier = tier;
+    document.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Free tier uses paid API to get all 12 rashis, but renders with free restrictions
+    const mockMap = { 0:'guest', 1:'paid', 2:'paid' };
+    const planMap  = { 0:'',      1:'monthly', 2:'monthly' };
+    loadForecast(mockMap[tier], selectedRashi, planMap[tier], tier);
+}
+
+// ── LOAD FORECAST ────────────────────────────────────────────────────────────
+async function loadForecast(mock = 'guest', rashi = selectedRashi, plan = 'monthly', tierOverride = null) {
+    showLoading();
+    try {
+        const url = `${API_BASE}?mock=${mock}&rashi=${rashi}&plan=${plan}`;
+        const res  = await fetch(url);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'API error');
+        currentData = json.data;
+        // Override tier for rendering if needed (free uses paid API)
+        if (tierOverride !== null) currentData.tier = tierOverride;
+        renderAll(currentData);
+    } catch(e) {
+        showError(e.message);
+    }
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function renderAll(data) {
+    updateHeader(data);
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '';
+
+    if (data.tier === 0) renderGuest(data, main);
+    else if (data.tier === 1) renderFree(data, main);
+    else if (data.tier === 2) renderPaid(data, main);
+}
+
+// ── HEADER PANCHANG STRIP ────────────────────────────────────────────────────
+function updateHeader(data) {
+    document.getElementById('hdr-date').textContent = data.date || '';
+    const strip = document.getElementById('panchangStrip');
+    const items = [
+        { label:'નક્ષત્ર', val: s(data.nakshatra_gu) || s(data.nakshatra) },
+        { label:'વાર',     val: s(data.vara_gu) || s(data.vara) },
+        { label:'તિથિ',   val: s(data.tithi_gu) || s(data.tithi_name) },
+        { label:'પક્ષ',   val: data.paksha === 'Shukla' ? 'શુક્લ' : 'કૃષ્ણ' },
+    ];
+    if (data.yoga_gu || data.yoga) items.push({ label:'યોગ', val: s(data.yoga_gu) || s(data.yoga) });
+    strip.innerHTML = items.map(i =>
+        `<div class="pc-chip">${i.label}<span>${i.val}</span></div>`
+    ).join('');
+}
+
+// ── TIER 0: GUEST ─────────────────────────────────────────────────────────────
+function renderGuest(data, wrap) {
+    const emojiMap = { 1:'🔴', 2:'🟡', 3:'🟢', 4:'✨' };
+    const html = `
+        <div class="day-card">
+            <div class="day-emoji-big">${emojiMap[data.day_score] || '🟡'}</div>
+            <div class="day-rating score-color-${data.day_score}">${data.day_rating_en} — ${data.day_rating_gu}</div>
+            <div class="day-tip">${data.tip_en}</div>
+            <div class="day-tip" style="margin-top:6px;font-size:13px;color:var(--primary-dark)">${data.tip_gu}</div>
+        </div>
+
+        <div class="upgrade-banner">
+            <p>🔓 ${data.upgrade?.message_en}</p>
+            <p style="font-size:12px;margin-top:-6px;margin-bottom:10px;color:var(--primary)">
+                ${data.upgrade?.message_gu}</p>
+            <div class="upgrade-plans">
+                <button class="plan-chip" onclick="switchTier(1,document.querySelectorAll('.tier-btn')[1])">
+                    🆓 Login Free
+                </button>
+            </div>
+        </div>
+
+        ${renderPanchangDetail(data)}
+    `;
+    wrap.innerHTML = html;
+}
+
+// ── TIER 1: FREE ──────────────────────────────────────────────────────────────
+function renderFree(data, wrap) {
+    // Free tier uses paid API data (all 12 rashis available in response)
+    // But we show limited info — 4 items per card, expand shows 4 items + upgrade
+    const forecasts = data.forecasts || {};
+    const rashiList = Object.keys(forecasts);
+
+    // Build 4 info items from panchang + factors
+    function freeItems(fc) {
+        return [
+            {
+                label: '🌟 નક્ષત્ર',
+                val: data.nakshatra_gu || data.nakshatra,
+                valEn: data.nakshatra
+            },
+            {
+                label: '📅 તિથિ',
+                val: `${data.paksha === 'Shukla' ? 'શુક્લ' : 'કૃ.'} ${data.tithi_number || ''}`,
+                valEn: `${data.paksha} Tithi ${data.tithi_number || ''}`
+            },
+            {
+                label: '🌙 ચ.બળ',
+                val: fc.factors?.chandra_bala?.label_gu || fc.factors?.chandra_bala?.label || '',
+                valEn: fc.factors?.chandra_bala?.label || ''
+            },
+            {
+                label: '☀️ સૂ.બળ',
+                val: fc.factors?.surya_bala?.label_gu || fc.factors?.surya_bala?.label || '',
+                valEn: fc.factors?.surya_bala?.label || ''
+            },
+        ];
+    }
+
+    const html = `
+        <div style="font-size:13px;color:var(--tithi-color);margin-bottom:12px;font-weight:600;
+             animation:fadeUp 0.3s ease both">
+            🔓 Free Member — બધી ૧૨ રાશિઓ · 4 મૂળ પરિબળો
+        </div>
+
+        <div class="rashi-grid" id="freeRashiGrid">
+            ${rashiList.map((r, i) => {
+                const fc = forecasts[r];
+                const items = freeItems(fc);
+                const isUser = r === (data.user_rashi || '');
+                return `
+                <div class="rashi-card ${isUser ? 'selected' : ''}"
+                     style="animation-delay:${i*0.04}s; padding:10px 8px;"
+                     onclick="showFreeDetail('${r}')">
+                    <div class="rc-sym">${fc.symbol}</div>
+                    <div class="rc-name">${fc.rashi_gu}</div>
+                    <div style="width:100%;margin-top:6px">
+                        ${items.map(it => `
+                            <div class="free-rc-item">
+                                <span class="fi-label">${it.label}</span>
+                                <span class="fi-val">${it.val}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <!-- Free detail panel -->
+        <div class="free-detail" id="freeDetail"></div>
+
+        <!-- Upgrade banner -->
+        <div class="upgrade-banner" style="animation-delay:0.2s">
+            <p>💎 Upgrade to see all 12 rashis full forecast, weekly & monthly forecasts.</p>
+            <p style="font-size:12px;margin-top:-6px;margin-bottom:10px;color:var(--primary)">
+                બધી ૧૨ રાશિઓની સંપૂર્ણ આગાહી, સાપ્તાહિક અને માસિક આગાહી જોવા અપગ્રેડ કરો.</p>
+            <div class="upgrade-plans">
+                <button class="plan-chip weekly"
+                    onclick="switchTier(2,document.querySelectorAll('.tier-btn')[2])">
+                    Weekly ₹29
+                </button>
+                <button class="plan-chip monthly"
+                    onclick="switchTier(2,document.querySelectorAll('.tier-btn')[2])">
+                    Monthly ₹99
+                </button>
+                <button class="plan-chip yearly"
+                    onclick="switchTier(2,document.querySelectorAll('.tier-btn')[2])">
+                    Yearly ₹499
+                </button>
+            </div>
+        </div>
+
+        ${renderPanchangDetail(data)}
+    `;
+    wrap.innerHTML = html;
+
+    // Auto-open user rashi
+    if (data.user_rashi && forecasts[data.user_rashi]) {
+        showFreeDetail(data.user_rashi);
+    }
+}
+
+function showFreeDetail(rashiName) {
+    const data = currentData;
+    const fc = data?.forecasts?.[rashiName];
+    if (!fc) return;
+
+    // Highlight card
+    document.querySelectorAll('#freeRashiGrid .rashi-card').forEach(c => {
+        c.classList.toggle('selected', c.querySelector('.rc-name')?.textContent === fc.rashi_gu);
+    });
+
+    const detail = document.getElementById('freeDetail');
+    if (!detail) return;
+
+    // Extract sections from forecast text
+    // sec0=Nakshatra, sec1=Tithi, sec2=ChandraBala, sec3=SuryaBala
+    const sectionsEn = fc.forecast_en.split('\n\n').filter(s => s.trim());
+    const sectionsGu = fc.forecast_gu.split('\n\n').filter(s => s.trim());
+
+    const items = [
+        { icon:'🌟', label:'નક્ષત્ર — Nakshatra', en: sectionsEn[0]||'', gu: sectionsGu[0]||'' },
+        { icon:'📅', label:'તિથિ — Tithi',        en: sectionsEn[1]||'', gu: sectionsGu[1]||'' },
+        { icon:'🌙', label:`ચંદ્ર બળ — ${fc.factors?.chandra_bala?.label||''}`,
+                     en: sectionsEn[2]||'', gu: sectionsGu[2]||'' },
+        { icon:'☀️', label:`સૂર્ય બળ — ${fc.factors?.surya_bala?.label||''}`,
+                     en: sectionsEn[3]||'', gu: sectionsGu[3]||'' },
+    ];
+
+    detail.innerHTML = `
+        <div class="free-detail-header">
+            <div style="font-size:32px">${fc.symbol}</div>
+            <div style="flex:1">
+                <div style="color:#fff;font-size:18px;font-weight:700">${fc.rashi} — ${fc.rashi_gu}</div>
+                <div style="color:rgba(255,255,255,0.85);font-size:12px">Free · 4 પરિબળો</div>
+            </div>
+            <div style="text-align:center;background:rgba(255,255,255,0.2);
+                 border:1.5px solid rgba(255,255,255,0.4);border-radius:10px;padding:6px 12px">
+                <div style="font-size:20px">${fc.emoji}</div>
+                <div style="color:#fff;font-size:12px;font-weight:700">${fc.rating_en}</div>
+            </div>
+        </div>
+        <div class="free-detail-body">
+            ${items.map(it => `
+                <div class="free-detail-row">
+                    <div class="fdr-icon">${it.icon}</div>
+                    <div class="fdr-content">
+                        <div class="fdr-label">${it.label}</div>
+                        <div class="fdr-value">${it.en}</div>
+                        <div class="fdr-gu">${it.gu}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <div class="free-lock-banner">
+            <p>🔒 સંપૂર્ણ આગાહી જોવા — ગ્રહ ગોચર, યોગ, કરણ, વાર અને વધુ</p>
+            <div class="upgrade-plans">
+                <button class="plan-chip weekly"
+                    onclick="switchTier(2,document.querySelectorAll('.tier-btn')[2])">
+                    Weekly ₹29
+                </button>
+                <button class="plan-chip monthly"
+                    onclick="switchTier(2,document.querySelectorAll('.tier-btn')[2])">
+                    Monthly ₹99
+                </button>
+                <button class="plan-chip yearly"
+                    onclick="switchTier(2,document.querySelectorAll('.tier-btn')[2])">
+                    Yearly ₹499
+                </button>
+            </div>
+        </div>
+    `;
+    detail.classList.add('show');
+    detail.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ── TIER 2: PAID ──────────────────────────────────────────────────────────────
+function renderPaid(data, wrap) {
+    const forecasts = data.forecasts || {};
+    const rashiList = Object.keys(forecasts);
+
+    // Access flags
+    const flags = [
+        { label:'✅ Today\'s Forecast', on:true },
+        { label: data.weekly_access  ? '✅ Weekly'  : '🔒 Weekly',  on: data.weekly_access },
+        { label: data.monthly_access ? '✅ Monthly' : '🔒 Monthly', on: data.monthly_access },
+        { label: data.yearly_access  ? '✅ Yearly'  : '🔒 Yearly',  on: data.yearly_access },
+        { label: data.pdf_export     ? '✅ PDF Export':'🔒 PDF',    on: data.pdf_export },
+    ];
+
+    const html = `
+        <div class="paid-header-strip">
+            <div>
+                <div class="plan-badge">💎 ${data.tier_label}</div>
+                <div class="expiry-note" style="margin-top:6px">
+                    Expires: ${data.expires_at?.split(' ')[0]} &nbsp;·&nbsp; ${data.days_remaining} days left
+                </div>
+            </div>
+            <div style="font-size:22px">${data.planet_rashis ? renderPlanetBadges(data.planet_rashis) : ''}</div>
+        </div>
+
+        <div class="access-flags">
+            ${flags.map(f => `<div class="af-chip ${f.on?'on':'off'}">${f.label}</div>`).join('')}
+        </div>
+
+        <!-- 12 Rashi Grid -->
+        <div class="rashi-grid" id="rashiGrid">
+            ${rashiList.map((r,i) => renderRashiCard(forecasts[r], r === (data.user_rashi || 'Karka'), i)).join('')}
+        </div>
+
+        <!-- Detail panel -->
+        <div class="rashi-detail" id="rashiDetail"></div>
+
+        ${renderPanchangDetail(data)}
+    `;
+    wrap.innerHTML = html;
+
+    // Auto-open user rashi
+    if (data.user_rashi && forecasts[data.user_rashi]) {
+        showRashiDetail(data.user_rashi, forecasts[data.user_rashi]);
+    }
+}
+
+function renderRashiCard(fc, isSelected, delay) {
+    const stars = starRating(fc.score);
+    return `
+        <div class="rashi-card ${isSelected?'selected':''}"
+             style="animation-delay:${delay*0.05}s"
+             onclick="showRashiDetail('${fc.rashi}', null)">
+            <div class="rc-sym">${fc.symbol}</div>
+            <div class="rc-name">${fc.rashi_gu}</div>
+            <div class="rc-stars">${stars}</div>
+            <div class="rc-rating r${fc.score}">${fc.rating_gu}</div>
+        </div>
+    `;
+}
+
+function showRashiDetail(rashiName, fc) {
+    if (!fc) fc = currentData?.forecasts?.[rashiName];
+    if (!fc) return;
+
+    // Highlight selected card
+    document.querySelectorAll('.rashi-card').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.rashi-card').forEach(c => {
+        if (c.querySelector('.rc-name')?.textContent === fc.rashi_gu) c.classList.add('selected');
+    });
+
+    const detail = document.getElementById('rashiDetail');
+    const sections = fc.forecast_en.split('\n\n').filter(s => s.trim());
+
+    detail.innerHTML = `
+        <div class="rd-header">
+            <div class="rd-sym">${fc.symbol}</div>
+            <div class="rd-info">
+                <h3>${fc.rashi} — ${fc.rashi_gu}</h3>
+                <p>${starRating(fc.score)} ${fc.rating_en} · ${fc.rating_gu}</p>
+            </div>
+            <div class="rd-badge">
+                <div class="emoji">${fc.emoji}</div>
+                <div class="rat">${fc.rating_en}</div>
+            </div>
+        </div>
+        <div class="rd-body">
+            <div class="factors-grid" style="margin-bottom:16px">
+                ${renderFactors(fc.factors)}
+            </div>
+            <div class="forecast-sections">
+                ${sections.map(s => `
+                    <div class="fs-section">
+                        <strong>${s.split(':')[0] || ''}</strong>
+                        ${s.includes(':') ? s.substring(s.indexOf(':')+1).trim() : s}
+                    </div>
+                `).join('')}
+            </div>
+            <div style="margin-top:14px;text-align:right">
+                <button class="share-btn" onclick="shareCard('${fc.rashi}')">⬆ Share ${fc.rashi_gu}</button>
+            </div>
+        </div>
+    `;
+    detail.classList.add('show');
+    detail.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function renderFactors(factors) {
+    if (!factors) return '';
+    const labels = {
+        chandra_bala: 'ચ.બળ', surya_bala:'સૂ.બળ', graha:'ગ્રહ',
+        nakshatra:'નક્ષત્ર', tithi:'તિથિ', yoga:'યોગ', vara:'વાર', karana:'કરણ'
+    };
+    return Object.entries(factors).map(([k,v]) => `
+        <div class="factor-row">
+            <div class="factor-label">
+                <span>${labels[k] || k}</span>
+                <span>${v.label || ''}</span>
+            </div>
+            <div class="factor-bar-wrap">
+                <div class="factor-bar s${v.score}" style="transition-delay:${Math.random()*0.3}s"></div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderPanchangDetail(data) {
+    const items = [
+        ['🌙 નક્ષત્ર', data.nakshatra_gu ? `${s(data.nakshatra)} (${s(data.nakshatra_gu)})` : s(data.nakshatra)],
+        ['☀️ વાર',     data.vara_gu ? `${s(data.vara)} (${s(data.vara_gu)})` : s(data.vara)],
+        ['📅 તિથિ',   `${s(data.tithi_name)} ${s(data.paksha)}`],
+    ];
+    if (data.yoga) items.push(['🔯 યોગ', `${data.yoga} — ${data.yoga_quality || ''}`]);
+    if (data.moon_rashi) items.push(['🌙 ચ.રાશિ', data.moon_rashi]);
+    if (data.sun_rashi)  items.push(['☀️ સૂ.રાશિ', data.sun_rashi]);
+
+    return `
+        <div style="background:var(--card-bg);border:2px solid var(--cell-border);
+             border-radius:16px;padding:16px 18px;animation:fadeUp 0.4s 0.2s ease both">
+            <div style="font-size:13px;font-weight:700;color:var(--primary-dark);margin-bottom:12px">
+                📿 આજનો પંચાંગ
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                ${items.map(([l,v]) => `
+                    <div style="font-size:12px;color:var(--tithi-color)">
+                        ${l} <strong style="color:var(--date-num);display:block">${v}</strong>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderPlanetBadges(planet_rashis) {
+    const sym = { Mangal:'♂', Budh:'☿', Guru:'♃', Shukra:'♀', Shani:'♄' };
+    return Object.entries(planet_rashis).map(([p,r]) =>
+        `<span title="${p} in ${r.rashi}" style="font-size:16px;cursor:default">${sym[p]||p}</span>`
+    ).join(' ');
+}
+
+function starRating(score) {
+    const on = '⭐'; const off = '☆';
+    return [1,2,3,4].map(i => `<span class="rc-star">${i<=score?on:off}</span>`).join('');
+}
+
+function shareCard(rashi) {
+    const d = currentData;
+    let caption = '';
+    if (rashi && d.forecasts?.[rashi]) {
+        const fc = d.forecasts[rashi];
+        caption = `${fc.symbol} ${fc.rashi} — ${fc.rating_en} ${fc.emoji}\n${d.nakshatra} | ${d.vara} | ${d.tithi_name}\ngujaraticalendar.com`;
+    } else if (d.share) {
+        caption = d.share.caption_en;
+    } else {
+        caption = `${d.day_emoji} ${d.day_rating_en} day\n${d.nakshatra} | ${d.vara}\ngujaraticalendar.com`;
+    }
+    if (navigator.share) {
+        navigator.share({ title:'Gujarati Calendar Forecast', text:caption });
+    } else {
+        navigator.clipboard?.writeText(caption).then(() => alert('Copied to clipboard!'));
+    }
+}
+
+function showLoading() {
+    document.getElementById('mainContent').innerHTML = `
+        <div class="loading-wrap">
+            <div class="om">🕉</div>
+            <p>ભવિષ્ય ગણતરી થઈ રહી છે...</p>
+        </div>`;
+}
+
+function showError(msg) {
+    document.getElementById('mainContent').innerHTML = `
+        <div style="text-align:center;padding:40px 20px;color:var(--primary-dark)">
+            <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+            <p style="font-size:14px">${msg}</p>
+            <button onclick="loadForecast()" class="share-btn" style="margin-top:16px">ફરી પ્રયાસ</button>
+        </div>`;
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+loadForecast('guest', selectedRashi, '', 0);
+</script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>મુહૂર્ત શોધો</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans Gujarati',sans-serif;background:#f5f0e8;min-height:100vh;color:#2a1500}
+
+/* ── Top Bar ── */
+.top-bar{background:linear-gradient(135deg,#b33000,#e65c00,#ff8c00);padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;box-shadow:0 3px 12px rgba(0,0,0,0.3)}
+.back-btn{background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.5);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0}
+.top-title{color:#fff;font-size:18px;font-weight:700;flex:1;text-align:center;text-shadow:1px 1px 3px rgba(0,0,0,0.3)}
+
+/* ── Form Card ── */
+.form-card{background:#fff;margin:14px;border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(180,80,0,0.12);border:1px solid rgba(230,92,0,0.15)}
+.form-title{font-size:14px;font-weight:700;color:#b33000;margin-bottom:12px;text-align:center}
+
+/* Purpose grid */
+.purpose-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pur-btn{border:2px solid rgba(230,92,0,0.25);border-radius:10px;padding:10px 4px;cursor:pointer;background:#fff9f5;text-align:center;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.pur-btn:active{transform:scale(0.96)}
+.pur-btn.active{border-color:#e65c00;background:linear-gradient(135deg,#fff3e8,#ffe0c0)}
+.pur-icon{font-size:22px;display:block;margin-bottom:3px}
+.pur-name{font-size:10px;font-weight:700;color:#7a3000;line-height:1.2}
+
+/* Date row */
+.date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.field-lbl{font-size:11px;font-weight:700;color:#7a3000;margin-bottom:4px}
+.date-input{width:100%;padding:9px 10px;border:1.5px solid rgba(230,92,0,0.3);border-radius:8px;font-size:13px;color:#2a1500;background:#fff9f5;outline:none;font-family:inherit}
+.date-input:focus{border-color:#e65c00}
+
+/* Find button */
+.find-btn{width:100%;padding:13px;background:linear-gradient(135deg,#b33000,#e65c00);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px}
+.find-btn:active{opacity:.88}
+.find-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Status ── */
+.status-bar{margin:0 14px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;display:none}
+.status-bar.loading{background:#fff3cd;color:#7a4f00;display:block}
+.status-bar.none{background:#f8d7da;color:#721c24;display:block}
+
+/* ── Results ── */
+.results-header{margin:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+.results-title{font-size:13px;font-weight:700;color:#7a3000}
+.results-count{font-size:12px;color:#a05000;background:#ffe5cc;padding:3px 10px;border-radius:10px}
+
+.sort-bar{margin:0 14px 10px;display:flex;gap:6px}
+.sort-btn{font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;border:1.5px solid rgba(230,92,0,0.3);background:#fff;color:#7a3000;cursor:pointer;font-family:inherit}
+.sort-btn.active{background:#e65c00;color:#fff;border-color:#e65c00}
+
+/* ── Result Card ── */
+.result-card{background:#fff;margin:0 14px 10px;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(180,80,0,0.1);border-left:5px solid #ccc}
+.result-card.best{border-left-color:#2e7d32}
+.result-card.good{border-left-color:#e65c00}
+.result-card.ok  {border-left-color:#f0a500}
+
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px}
+.card-date-block{}
+.card-date{font-size:17px;font-weight:700;color:#1a0a00}
+.card-day{font-size:12px;color:#7a3000;margin-top:1px}
+.rating-badge{font-size:11px;font-weight:700;padding:4px 12px;border-radius:10px}
+.rating-badge.best{background:#e8f5e9;color:#1b5e20}
+.rating-badge.good{background:#fff3e0;color:#e65c00}
+.rating-badge.ok  {background:#fffde7;color:#f57f17}
+
+.card-body{padding:0 14px 12px}
+.panchang-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.p-pill{font-size:11px;background:#fff3e8;border:1px solid rgba(230,92,0,0.2);color:#7a3000;padding:3px 9px;border-radius:8px}
+.p-pill span{font-weight:700}
+
+.flags-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.flag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
+.flag.good{background:#e8f5e9;color:#2e7d32}
+.flag.warn{background:#fff3e0;color:#c45a00}
+
+.slots-title{font-size:11px;font-weight:700;color:#7a3000;margin-bottom:5px}
+.slots-row{display:flex;gap:6px;flex-wrap:wrap}
+.slot-chip{font-size:11px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);color:#1b5e20;padding:4px 10px;border-radius:6px;font-weight:600}
+
+.sun-row{display:flex;gap:12px;margin-top:6px}
+.sun-item{font-size:11px;color:#7a3000}
+.sun-item span{font-weight:700}
+
+/* ── Empty state ── */
+.results-list{padding-bottom:20px}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+    <button class="back-btn" onclick="history.back()">← પાછળ</button>
+    <span class="top-title">🕐 શુભ મુહૂર્ત</span>
+</div>
+
+<!-- Form -->
+<div class="form-card">
+    <div class="form-title">🙏 પ્રસંગ અને તારીખ પસંદ કરો</div>
+
+    <div class="purpose-grid">
+        <button class="pur-btn active" data-purpose="wedding" onclick="selectPurpose(this)">
+            <span class="pur-icon">💒</span>
+            <span class="pur-name">લગ્ન</span>
+        </button>
+        <button class="pur-btn" data-purpose="engagement" onclick="selectPurpose(this)">
+            <span class="pur-icon">💍</span>
+            <span class="pur-name">સગાઈ</span>
+        </button>
+        <button class="pur-btn" data-purpose="griha_pravesh" onclick="selectPurpose(this)">
+            <span class="pur-icon">🏠</span>
+            <span class="pur-name">ગૃહ પ્રવેશ</span>
+        </button>
+        <button class="pur-btn" data-purpose="business" onclick="selectPurpose(this)">
+            <span class="pur-icon">🏪</span>
+            <span class="pur-name">વ્યાપાર</span>
+        </button>
+        <button class="pur-btn" data-purpose="vehicle" onclick="selectPurpose(this)">
+            <span class="pur-icon">🚗</span>
+            <span class="pur-name">વાહન ખરીદી</span>
+        </button>
+        <button class="pur-btn" data-purpose="namkaran" onclick="selectPurpose(this)">
+            <span class="pur-icon">👶</span>
+            <span class="pur-name">નામકરણ</span>
+        </button>
+    </div>
+
+    <div class="date-row">
+        <div>
+            <div class="field-lbl">📅 શરૂઆત તારીખ</div>
+            <input class="date-input" type="date" id="from-date">
+        </div>
+        <div>
+            <div class="field-lbl">📅 સમાપ્તિ તારીખ</div>
+            <input class="date-input" type="date" id="to-date">
+        </div>
+    </div>
+
+    <button class="find-btn" id="find-btn" onclick="findMuhurat()">🔍 મુહૂર્ત શોધો</button>
+</div>
+
+<div class="status-bar" id="status-bar"></div>
+
+<div id="results-section" style="display:none">
+    <div class="results-header">
+        <span class="results-title" id="results-title"></span>
+        <span class="results-count" id="results-count"></span>
+    </div>
+    <div class="sort-bar">
+        <button class="sort-btn active" onclick="sortResults('score',this)">⭐ શ્રેષ્ઠ પ્રથમ</button>
+        <button class="sort-btn" onclick="sortResults('date',this)">📅 તારીખ ક્રમ</button>
+    </div>
+    <div class="results-list" id="results-list"></div>
+</div>
+
+<script>
+const TODAY = new Date();
+const pad   = n => String(n).padStart(2,'0');
+const fmt   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+// Set default dates
+document.getElementById('from-date').value = fmt(TODAY);
+const def_to = new Date(TODAY); def_to.setDate(def_to.getDate() + 60);
+document.getElementById('to-date').value = fmt(def_to);
+
+let currentPurpose = 'wedding';
+let allResults     = [];
+
+function selectPurpose(btn) {
+    document.querySelectorAll('.pur-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPurpose = btn.dataset.purpose;
+}
+
+async function findMuhurat() {
+    const from = document.getElementById('from-date').value;
+    const to   = document.getElementById('to-date').value;
+    if (!from || !to) { alert('કૃપા કરી તારીખ પસંદ કરો'); return; }
+    if (from > to)    { alert('શરૂઆત તારીખ સમાપ્તિ પહેલાં હોવી જોઈએ'); return; }
+
+    const btn = document.getElementById('find-btn');
+    btn.disabled = true;
+    showStatus('loading', '🔄 મુહૂર્ત ગણતરી ચાલી રહી છે...');
+    document.getElementById('results-section').style.display = 'none';
+
+    try {
+        const res  = await fetch(`api.php?action=muhurat&purpose=${currentPurpose}&from=${from}&to=${to}`);
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.message || 'Error');
+
+        const d = data.data; allResults = d.muhurats;
+        hideStatus();
+
+        if (!allResults.length) {
+            showStatus('none', `😔 ${from} થી ${to} સુધી "${d.label}" માટે કોઈ શુભ મુહૂર્ત મળ્યા નહીં.\nવધુ દિવસો માટે શોધો.`);
+        } else {
+            document.getElementById('results-title').textContent = d.label;
+            document.getElementById('results-count').textContent = d.total_found + ' મુહૂર્ત';
+            renderResults(allResults);
+            document.getElementById('results-section').style.display = 'block';
+        }
+    } catch(e) {
+        showStatus('none', '❌ Error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function renderResults(list) {
+    const RATING_LBL = { best:'⭐ શ્રેષ્ઠ', good:'✅ સારો', ok:'👍 ઠીક' };
+    const MONTHS_GU  = ['','જાન','ફેબ','માર','એપ્ર','મે','જૂન','જુલ','ઓગ','સપ','ઓક','નવ','ડિસ'];
+
+    document.getElementById('results-list').innerHTML = list.map(m => {
+        const d     = new Date(m.date);
+        const day   = d.getDate();
+        const mon   = MONTHS_GU[d.getMonth()+1];
+        const yr    = d.getFullYear();
+        const flags = m.flags.map(f =>
+            `<span class="flag ${f.type}">${f.type==='good'?'✓':'⚠'} ${f.msg}</span>`).join('');
+        const slots = m.best_slots.map(s =>
+            `<span class="slot-chip">${s.name} ${s.start}–${s.end}</span>`).join('');
+        const tithi_show = m.tithi_gu || m.tithi;
+        const nak_show   = m.nakshatra_gu || m.nakshatra;
+
+        return `<div class="result-card ${m.rating}">
+            <div class="card-head">
+                <div class="card-date-block">
+                    <div class="card-date">${day} ${mon} ${yr}</div>
+                    <div class="card-day">${m.day_gu}વાર &nbsp;·&nbsp; ${m.day_en}</div>
+                </div>
+                <span class="rating-badge ${m.rating}">${RATING_LBL[m.rating]}</span>
+            </div>
+            <div class="card-body">
+                <div class="panchang-row">
+                    <span class="p-pill">તિથિ: <span>${tithi_show}</span></span>
+                    <span class="p-pill">નક્ષત્ર: <span>${nak_show}</span></span>
+                    ${m.yoga ? `<span class="p-pill">યોગ: <span>${m.yoga}</span></span>` : ''}
+                </div>
+                <div class="flags-row">${flags}</div>
+                ${slots ? `<div class="slots-title">🕐 શુભ ચોઘડિયાં (દિવસ)</div>
+                <div class="slots-row">${slots}</div>` : ''}
+                <div class="sun-row">
+                    <span class="sun-item">🌅 <span>${m.sunrise}</span></span>
+                    <span class="sun-item">🌇 <span>${m.sunset}</span></span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function sortResults(by, btn) {
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const sorted = [...allResults].sort((a,b) =>
+        by === 'date' ? a.date.localeCompare(b.date) : b.score - a.score);
+    renderResults(sorted);
+}
+
+function showStatus(type, msg) {
+    const el = document.getElementById('status-bar');
+    el.className = 'status-bar ' + type;
+    el.textContent = msg;
+}
+function hideStatus() {
+    document.getElementById('status-bar').style.display = 'none';
+    document.getElementById('status-bar').className = 'status-bar';
+}
+</script>
+</body>
+</html>
